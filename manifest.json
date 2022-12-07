@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "realibox-donwload-chrome-plugin",
+  "version": "1.0",
+  "description": "download realibox local package helper",
+  "action": {
+    "default_popup": "dist/index.html"
+  },
+  "permissions": [
+    "notifications",
+    "downloads"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "app/app.js"
+      ]
+    }
+  ]
+}
