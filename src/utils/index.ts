@@ -27,4 +27,16 @@ export const MESSAGE_TYPE = {
 	CREATE_PACK_TASK_RESULT: 'CREATE_PACK_TASK_RESULT',
 	FLUSH_FOLDER_NODES_RESULT: 'FLUSH_FOLDER_NODES_RESULT',
 	QUERY_TASK_STATUS_RESULT: 'QUERY_TASK_STATUS_RESULT',
+} as const;
+
+type ChromeSendMessage = {
+	type: keyof typeof MESSAGE_TYPE;
+	data?: any;
+};
+
+export const chromeTabSendMessage = ({ type, data }: ChromeSendMessage) => {
+	chrome.tabs.sendMessage(chrome.devtools.inspectedWindow.tabId, {
+		type,
+		data,
+	});
 };

@@ -3,7 +3,7 @@
  * @param {string} key
  * @returns
  */
-const getCookie = (key) => {
+const getCookie = (key: string) => {
 	let arr;
 	const reg = new RegExp('(^| )' + key + '=([^;]*)(;|$)');
 	if ((arr = document.cookie.match(reg))) {
@@ -20,7 +20,7 @@ const getToken = () => getCookie('hub_auth_token');
  * @param {string} url
  * @returns
  */
-const getParentIdAndFolderId = (url /*  */) => {
+const getParentIdAndFolderId = (url: string /*  */) => {
 	const urlReg = /\/project\/([^\/]+)\/?([^\/]+)?/;
 	let parent_id, folder_id;
 	try {
@@ -41,7 +41,12 @@ const HTTP_SUCCESS_CODE = 200000;
  * @param {string} folder_id
  * @returns
  */
-const getFolderNodes = (project_id, parent_id, token, limit = '100') => {
+const getFolderNodes = (
+	project_id: string,
+	parent_id: string,
+	token: string,
+	limit = '100'
+) => {
 	const query = new URLSearchParams({
 		project_id,
 		parent_id: parent_id || project_id,
@@ -59,7 +64,7 @@ const getFolderNodes = (project_id, parent_id, token, limit = '100') => {
 		},
 	});
 };
-
+[].reduce;
 /**
  * 刷新文件列表
  * @returns
@@ -70,7 +75,7 @@ const flushFolderNodes = () => {
 	return getFolderNodes(parent_id || '', folder_id || '', token)
 		.then((res) => res.json())
 		.then((res) => {
-			const result = res.list.data.map((i) => {
+			const result = res.list.data.map((i: any) => {
 				let scene_uid = '';
 				if (i.scenes[0]) {
 					scene_uid = i.scenes[0].scene_uid;
@@ -80,7 +85,7 @@ const flushFolderNodes = () => {
 				const item = { ...i, scene_uid };
 				return item;
 			});
-			return result.reduce((acc, cur) => {
+			return result.reduce((acc: any, cur: any) => {
 				if (!cur) return acc;
 				acc[cur.scene_uid] = cur;
 				return acc;
@@ -98,7 +103,7 @@ let abortController = new AbortController();
  * @param {string|Array<string>} job_uids
  * @returns
  */
-const queryTaskStatus = async (job_uids) => {
+const queryTaskStatus = async (job_uids: string | Array<string>) => {
 	const reqUrl = 'https://hub.realibox.com/api/hub/v1/jobs';
 	// 取消上一次请求
 	abortController.abort('cancel prev request');
@@ -125,7 +130,7 @@ const queryTaskStatus = async (job_uids) => {
  * @param {string} parent_id 项目id
  * @param {string} scene_uid 场景id
  */
-const createPackTask = async (parent_id, scene_uid) => {
+const createPackTask = async (parent_id: string, scene_uid: string) => {
 	const reqUrl = `https://hub.realibox.com/api/hub/v1/studio/scene/pack/${scene_uid}?project_id=${parent_id}`;
 	const token = getToken();
 	try {
@@ -160,7 +165,7 @@ const MESSAGE_TYPE = {
 	QUERY_TASK_STATUS_RESULT: 'QUERY_TASK_STATUS_RESULT',
 };
 
-chrome.runtime.onMessage.addListener(({ type, data }) => {
+chrome.runtime.onMessage.addListener(({ type, data }, _, senResponse) => {
 	console.log('message type:', type);
 	switch (true) {
 		case type === MESSAGE_TYPE.CREATE_PACK_TASK: {
@@ -169,6 +174,7 @@ chrome.runtime.onMessage.addListener(({ type, data }) => {
 			const [parent_id] = getParentIdAndFolderId(location.pathname);
 			createPackTask(parent_id || '', scene_uid).then((res) => {
 				console.log('create pack task data:', data, 'res:', res);
+
 				chrome.runtime.sendMessage({
 					type: MESSAGE_TYPE.CREATE_PACK_TASK_RESULT,
 					data: {
@@ -194,6 +200,10 @@ chrome.runtime.onMessage.addListener(({ type, data }) => {
 			queryTaskStatus(job_uids)
 				.then((res) => {
 					console.log('query tasks status result:', res);
+					senResponse({
+						type: MESSAGE_TYPE.QUERY_TASK_STATUS_RESULT,
+						data: res.list.data,
+					});
 					chrome.runtime.sendMessage({
 						type: MESSAGE_TYPE.QUERY_TASK_STATUS_RESULT,
 						data: res.list.data,
@@ -210,19 +220,4 @@ chrome.runtime.onMessage.addListener(({ type, data }) => {
 	}
 });
 
-let timer;
-window.addEventListener('message', (e) => {
-	const { type } = e.data;
-	if (e.source !== window && type !== 'folderChange') {
-		return;
-	}
-	clearInterval(timer);
-	timer = setTimeout(() => {
-		flushFolderNodes().then((res) => {
-			chrome.runtime.sendMessage({
-				type: MESSAGE_TYPE.FLUSH_FOLDER_NODES_RESULT,
-				data: res,
-			});
-		});
-	}, 500);
-});
+export {};

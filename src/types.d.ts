@@ -19,7 +19,12 @@ declare module Realibox {
 		user_id: string;
 		user_nickname: string;
 		scene_uid: string; // 场景id
-		task_status?: TaskStatus;
 	};
-	type TaskStatus = 'GET_SCENE_UID' | 'QUERY_STATUS' | 'GET_DOWNLOAD' | 'ERROR'; // 当前状态
+	// 任务状态
+	type TaskStatus =
+		| 'GET_SCENE_UID'
+		| 'QUERY_STATUS'
+		| 'GET_DOWNLOAD'
+		| 'ERROR'
+		| undefined;
 }

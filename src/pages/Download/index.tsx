@@ -1,6 +1,6 @@
 import { useApp } from '@/store';
 import cx from 'classnames';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 const getStatusText = (status: Realibox.TaskStatus) => {
 	switch (true) {
@@ -14,15 +14,44 @@ const getStatusText = (status: Realibox.TaskStatus) => {
 };
 
 const Download = () => {
-	const { downloadTaskRecord, removeDownloadTask, queryTaskStatus } = useApp();
+	const {
+		downloadTaskRecord,
+		removeDownloadTask,
+		queryTaskStatus,
+		jobUidRecord,
+	} = useApp();
 	const downloadRecordList = useMemo(
 		() => Object.values(downloadTaskRecord),
 		[downloadTaskRecord]
 	);
 
+	/**
+	 * 监听查询任务状态
+	 */
+	useEffect(() => {
+		let queryTimer: number;
+		const cycleQuery = () => {
+			if (!downloadRecordList.some((task) => task.status === 'QUERY_STATUS')) {
+				console.log('all task resolve',downloadRecordList);
+				return;
+			}
+			queryTaskStatus(() => {
+				queryTimer = setTimeout(() => {
+					cycleQuery();
+				}, 2000);
+			});
+		};
+		cycleQuery();
+		return () => {
+			clearTimeout(queryTimer);
+		};
+	}, [jobUidRecord]);
+
 	return (
 		<div className='mt-10 px-2 pt-4'>
-			<button onClick={queryTaskStatus} className='bg-indigo-100 text-black hover:bg-indigo-200 py-1 px-2 rounded'>
+			<button
+				onClick={() => queryTaskStatus()}
+				className='bg-indigo-100 text-black hover:bg-indigo-200 py-1 px-2 rounded'>
 				刷新状态
 			</button>
 			<ul className='px-2'>

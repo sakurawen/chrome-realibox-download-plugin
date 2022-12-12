@@ -8,9 +8,9 @@ function Explore() {
 		fileRecord,
 		createParkTask,
 		downloadTaskRecord,
+		sceneStatusRecord,
 	} = useApp();
 	const exploreContainerRef = useRef<HTMLDivElement>(null);
-
 
 	/**
 	 * 筛选key
@@ -58,7 +58,7 @@ function Explore() {
 			</div>
 			<div
 				ref={exploreContainerRef}
-				className='explore overflow-auto h-screen  pt-8'>
+				className='explore overflow-auto h-screen pb-8 pt-8'>
 				<ul className='p-1 mt-2 flex flex-wrap justify-start items-center'>
 					{filterNodes.map((item) => {
 						return (
@@ -72,10 +72,14 @@ function Explore() {
 												className={cx(
 													'block w-4 h-4 absolute  top-1 left-1 rounded',
 													{
-														'bg-blue-100': item.task_status === 'QUERY_STATUS',
-														'bg-emerald-500':
-															item.task_status === 'GET_DOWNLOAD',
-														'bg-red-100': item.task_status === 'ERROR',
+														'bg-blue-100':
+															sceneStatusRecord[item.scene_uid] ===
+															'QUERY_STATUS',
+														'bg-green-100':
+															sceneStatusRecord[item.scene_uid] ===
+															'GET_DOWNLOAD',
+														'bg-red-100':
+															sceneStatusRecord[item.scene_uid] === 'ERROR',
 													}
 												)}></i>
 											<img

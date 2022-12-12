@@ -2,27 +2,37 @@ import '@/App.css';
 import Download from '@/pages/Download';
 import Explore from '@/pages/Explore';
 import { useApp } from '@/store';
+import DownloadTask from '@/store/entity/DownloadTask';
+import { getCurrentTab, MESSAGE_TYPE } from '@/utils';
 import * as Tabs from '@radix-ui/react-tabs';
 import cx from 'classnames';
-import { useEffect, useMemo } from 'react';
-import { MESSAGE_TYPE } from '@/utils';
-import DownloadTask from '@/store/entity/DownloadTask';
+import { useEffect, useMemo, useState } from 'react';
+import useOnceEffect from './hooks/useOnceEffect';
 
 const App = () => {
 	const {
 		dowbnloadTaskCount,
 		fileRecord,
-		updateFileRecord,
+		searchKey,
+		freshExploreFiles,
 		addJobUid,
 		addDownloadTask,
-		searchKey,
+		updateFileRecord,
 		updateSearchKey,
-		freshExploreFiles,
+		updateDownloadTaskRecord,
 	} = useApp();
 	const fileList = useMemo(() => Object.values(fileRecord), [fileRecord]);
 
+	useOnceEffect(() => {
+		getCurrentTab().then((tab) => {
+			chrome.tabs.sendMessage(tab.id || 0, {
+				type: MESSAGE_TYPE.FLUSH_FOLDER_NODES,
+			});
+		});
+	});
 	useEffect(() => {
 		if (!chrome.runtime) return;
+
 		const listenMessageResult = ({
 			type,
 			data,
@@ -30,7 +40,6 @@ const App = () => {
 			type: string;
 			data: any;
 		}) => {
-			console.log(`type:${type},data:`, data);
 			switch (true) {
 				// 刷新文件列表
 				case type === MESSAGE_TYPE.FLUSH_FOLDER_NODES_RESULT: {
@@ -39,20 +48,17 @@ const App = () => {
 				}
 				// 查询打包任务状态
 				case type === MESSAGE_TYPE.QUERY_TASK_STATUS_RESULT: {
+					if (data.length === 0) return;
+					updateDownloadTaskRecord(data);
 					return;
 				}
 				// 创建打包任务
 				case type === MESSAGE_TYPE.CREATE_PACK_TASK_RESULT: {
 					const { job_uid, scene_uid, name } = data;
 					if (!job_uid) {
-						updateFileRecord((state) => {
-							state.fileRecord[scene_uid].task_status = 'ERROR';
-						});
 						return;
 					}
-					updateFileRecord((state) => {
-						state.fileRecord[scene_uid].task_status = 'QUERY_STATUS';
-					});
+
 					const task = new DownloadTask({
 						status: 'QUERY_STATUS',
 						jobUid: job_uid,
@@ -60,7 +66,7 @@ const App = () => {
 						sceneUid: scene_uid,
 						order: dowbnloadTaskCount + 1,
 					});
-					addJobUid(job_uid);
+					addJobUid(job_uid, scene_uid);
 					addDownloadTask(task);
 					return;
 				}
@@ -72,12 +78,21 @@ const App = () => {
 		};
 	}, [fileList]);
 
+	const [tab, setTab] = useState<'explore' | 'download'>('explore');
+
+	const handleUpdateSearchKey = (value: string) => {
+		updateSearchKey(value);
+	};
+
+	const isExploreTab = tab === 'explore';
+
 	return (
 		<div className='App w-full'>
 			<Tabs.Root defaultValue='explore'>
 				<div className='fixed box-border border-b border-indigo-50 pr-2 top-0 left-0  w-full h-8 bg-white  z-10 flex items-center'>
 					<Tabs.List className='flex'>
 						<Tabs.TabsTrigger
+							onClick={() => setTab('explore')}
 							className='flex pt-1  align-middle items-center  px-2 text-sm data-[state=active]:text-black data-[state=active]:bg-indigo-50 data-[state=active]:border-indigo-200 border-white/0 border-b-2  pb-1  '
 							value='explore'>
 							<svg
@@ -96,6 +111,7 @@ const App = () => {
 							<span>Explore</span>
 						</Tabs.TabsTrigger>
 						<Tabs.TabsTrigger
+							onClick={() => setTab('download')}
 							className='flex pt-1 align-middle items-center pl-2 pr-3 text-sm data-[state=active]:text-black data-[state=active]:bg-indigo-50 data-[state=active]:border-indigo-200 border-white/0 border-b-2  pb-1  '
 							value='download'>
 							<svg
@@ -125,15 +141,15 @@ const App = () => {
 					</Tabs.List>
 					<div className='flex-1 h-full flex justify-center items-center mx-4'>
 						<input
-							onChange={(e) => updateSearchKey(e.target.value)}
+							onChange={(e) => handleUpdateSearchKey(e.target.value)}
 							value={searchKey}
-							placeholder='Search files'
+							placeholder={isExploreTab ? 'Search Files' : 'Search Tasks'}
 							className='block w-full text-xs border-none   text-black outline-none'
 							type='text'
 						/>
 					</div>
 					<button
-						className='text-xs py-1 px-2 rounded  hover:ring-2 ring-indigo-200  bg-indigo-100 group text-black text-center  inline-flex justify-center items-center'
+						className='text-xs select-none py-1 px-2 rounded  hover:bg-indigo-200  bg-indigo-100 group text-black text-center  inline-flex justify-center items-center'
 						onClick={freshExploreFiles}>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
