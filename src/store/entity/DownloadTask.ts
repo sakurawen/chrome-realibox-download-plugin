@@ -15,6 +15,7 @@ class DownloadTask {
 	status: Realibox.TaskStatus;
 	err: any = undefined;
 	downloadUrl: string = '';
+	downloadStatus: undefined | 'success' | 'fail';
 	order = 0;
 	constructor({ jobUid, status, title, sceneUid, order }: DownloadTaskParam) {
 		this.jobUid = jobUid;

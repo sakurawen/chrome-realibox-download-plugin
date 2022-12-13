@@ -1,38 +1,10 @@
-/**
- * 根据key获取cookie值
- * @param {string} key
- * @returns
- */
-const getCookie = (key: string) => {
-	let arr;
-	const reg = new RegExp('(^| )' + key + '=([^;]*)(;|$)');
-	if ((arr = document.cookie.match(reg))) {
-		return unescape(arr[2]);
-	} else {
-		return '';
-	}
-};
+import { onMessage } from 'webext-bridge';
 
-const getToken = () => getCookie('hub_auth_token');
-
-/**
- * 获取项目和文件夹id
- * @param {string} url
- * @returns
- */
-const getParentIdAndFolderId = (url: string /*  */) => {
-	const urlReg = /\/project\/([^\/]+)\/?([^\/]+)?/;
-	let parent_id, folder_id;
-	try {
-		const match = url.match(urlReg);
-		parent_id = match?.[1];
-		folder_id = match?.[2];
-	} catch {
-		parent_id = '';
-		folder_id = '';
-	}
-	return [parent_id, folder_id];
-};
+onMessage('getToken', ({ data }) => {
+	console.log('getToken background:', data);
+});
+let token = '';
+const getToken = () => token;
 
 const HTTP_SUCCESS_CODE = 200000;
 /**
@@ -69,8 +41,7 @@ const getFolderNodes = (
  * 刷新文件列表
  * @returns
  */
-const flushFolderNodes = () => {
-	let [parent_id, folder_id] = getParentIdAndFolderId(location.pathname);
+const flushFolderNodes = (parent_id:string, folder_id:string) => {
 	const token = getToken();
 	return getFolderNodes(parent_id || '', folder_id || '', token)
 		.then((res) => res.json())
@@ -155,69 +126,3 @@ const createPackTask = async (parent_id: string, scene_uid: string) => {
 		};
 	}
 };
-
-const MESSAGE_TYPE = {
-	CREATE_PACK_TASK: 'CREATE_PACK_TASK',
-	FLUSH_FOLDER_NODES: 'FLUSH_FOLDER_NODES',
-	QUERY_TASK_STATUS: 'QUERY_TASK_STATUS',
-	CREATE_PACK_TASK_RESULT: 'CREATE_PACK_TASK_RESULT',
-	FLUSH_FOLDER_NODES_RESULT: 'FLUSH_FOLDER_NODES_RESULT',
-	QUERY_TASK_STATUS_RESULT: 'QUERY_TASK_STATUS_RESULT',
-};
-
-chrome.runtime.onMessage.addListener(({ type, data }, _, senResponse) => {
-	console.log('message type:', type);
-	switch (true) {
-		case type === MESSAGE_TYPE.CREATE_PACK_TASK: {
-			// 创建打包任务
-			const { scene_uid, name } = data;
-			const [parent_id] = getParentIdAndFolderId(location.pathname);
-			createPackTask(parent_id || '', scene_uid).then((res) => {
-				console.log('create pack task data:', data, 'res:', res);
-
-				chrome.runtime.sendMessage({
-					type: MESSAGE_TYPE.CREATE_PACK_TASK_RESULT,
-					data: {
-						...res,
-						name,
-					},
-				});
-			});
-			break;
-		}
-		case type === MESSAGE_TYPE.FLUSH_FOLDER_NODES: {
-			//  刷新文件节点列表
-			flushFolderNodes().then((res) => {
-				chrome.runtime.sendMessage({
-					type: MESSAGE_TYPE.FLUSH_FOLDER_NODES_RESULT,
-					data: res,
-				});
-			});
-			break;
-		}
-		case type === MESSAGE_TYPE.QUERY_TASK_STATUS: {
-			const { job_uids } = data;
-			queryTaskStatus(job_uids)
-				.then((res) => {
-					console.log('query tasks status result:', res);
-					senResponse({
-						type: MESSAGE_TYPE.QUERY_TASK_STATUS_RESULT,
-						data: res.list.data,
-					});
-					chrome.runtime.sendMessage({
-						type: MESSAGE_TYPE.QUERY_TASK_STATUS_RESULT,
-						data: res.list.data,
-					});
-				})
-				.catch(() => {
-					chrome.runtime.sendMessage({
-						type: MESSAGE_TYPE.QUERY_TASK_STATUS_RESULT,
-						data: [],
-					});
-				});
-			break;
-		}
-	}
-});
-
-export {};

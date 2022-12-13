@@ -3,31 +3,25 @@
   "name": "realibox-donwload-chrome-plugin",
   "version": "1.0",
   "description": "realihub hub下载离线包插件",
-  "devtools_page": "dist/devtool.html",
+  "devtools_page": "devtools.html",
   "permissions": [
     "downloads",
     "scripting",
     "activeTab",
+    "downloads",
     "tabs"
   ],
-  "action": {},
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "plugin/inject/historyApiReplace.js"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ],
+  "background": {
+    "service_worker": "js/background.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
       "matches": [
-        "*://hub.realibox.com/project/*"
+        "<all_urls>"
       ],
       "js": [
-        "plugin/index.js"
+        "js/content.js"
       ]
     }
   ]

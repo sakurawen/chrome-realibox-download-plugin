@@ -13,7 +13,14 @@ export default defineConfig({
 		rollupOptions: {
 			input: {
 				app: './index.html',
-				devtool: './devtool.html',
+				devtool: './devtools.html',
+				content: './src/extension/content.ts',
+				background: './src/extension/background.ts',
+			},
+			output: {
+				assetFileNames: '[ext]/[name][extname]',
+				chunkFileNames: 'js/chunk/[name]-[hash].js',
+				entryFileNames: 'js/[name].js',
 			},
 		},
 	},

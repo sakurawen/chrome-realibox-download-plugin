@@ -17,15 +17,15 @@ function Explore() {
 	 */
 	const deferredSearchKey = useDeferredValue(searchKey);
 
-	const fileList = useMemo(() => Object.values(fileRecord), [fileRecord]);
-
-	/**
-	 * 当前可供下载的节点
-	 */
-	const filterNodes = useMemo(() => {
-		if (deferredSearchKey.trim().length === 0) return fileList;
-		return fileList.filter((item) => item.name.includes(deferredSearchKey));
-	}, [deferredSearchKey, fileList]);
+	const fileList = useMemo(() => {
+		const list = Object.values(fileRecord);
+		if (deferredSearchKey.trim().length === 0) return list;
+		return list.filter(
+			(item) =>
+				item.name.toUpperCase().includes(deferredSearchKey.toUpperCase()) ||
+				item.scene_uid.includes(deferredSearchKey)
+		);
+	}, [fileRecord, deferredSearchKey]);
 
 	/**
 	 *
@@ -60,12 +60,15 @@ function Explore() {
 				ref={exploreContainerRef}
 				className='explore overflow-auto h-screen pb-8 pt-8'>
 				<ul className='p-1 mt-2 flex flex-wrap justify-start items-center'>
-					{filterNodes.map((item) => {
+					{fileList.map((item) => {
 						return (
 							<li
-								className='w-1/2 select-none md:w-1/4 lg:w-[12.5%] 2xl:w-1/12 p-2'
+								role='listitem'
+								className='w-1/2 select-none md:w-1/4 xl:w-[16.6%] 2xl:w-[12.5%] p-2'
 								key={item.id}>
-								<div className='shadow-sm w-full  hover:ring-indigo-100 hover:ring-2  rounded-md pb-2 pt-1 mb-2 flex justify-between items-center px-1'>
+								<div
+									tabIndex={0}
+									className='shadow-sm w-full relative  hover:ring-indigo-100 hover:ring-2  rounded-md pb-2 pt-1 mb-2 flex justify-between items-center px-1'>
 									<div className='w-full'>
 										<div className='w-full relative'>
 											<i
@@ -87,15 +90,21 @@ function Explore() {
 												src={'https:' + item.thumbnail}
 												alt='thumbnail'
 											/>
+											<div className='absolute bottom-0 left-0 overflow-hidden text-xs whitespace-pre-wrap text-gray-500 '>
+												<span className='inline-block rounded text-indigo-50 px-1 bg-black/40'>
+													{item.scene_uid}
+												</span>
+											</div>
 										</div>
 										<div className='pl-1 flex w-full justify-between overflow-hidden items-center mt-2'>
 											<div className='whitespace-nowrap max-w-[80%] overflow-hidden text-ellipsis'>
 												{item.name}
 											</div>
-											<div
+											<button
+												tabIndex={0}
 												onClick={() => handleStartPack(item)}
 												className={cx(
-													' hover:bg-indigo-100 cursor-pointer hover:text-black p-0.5 rounded-md',
+													' hover:bg-indigo-100 hover:ring-indigo-300 hover:ring-2 ring-inset cursor-pointer hover:text-black p-0.5 rounded-md',
 													{
 														hidden:
 															downloadTaskRecord[item.scene_uid]?.status ===
@@ -116,7 +125,7 @@ function Explore() {
 														d='M12 6v12m6-6H6'
 													/>
 												</svg>
-											</div>
+											</button>
 										</div>
 									</div>
 								</div>

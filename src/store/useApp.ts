@@ -2,20 +2,13 @@ import create from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { createTrackedSelector } from 'react-tracked';
-import { MESSAGE_TYPE, chromeTabSendMessage } from '@/utils';
+import { chromeTabSendMessage } from '@/utils';
+import { MESSAGE_TYPE } from '@/shared/message';
 import DownloadTask from '@/store/entity/DownloadTask';
 
 type SceneUid = string;
 type JobUid = string;
-type AppState = {
-	fileRecord: Record<SceneUid, Realibox.File>; //当前所有文件
-	searchKey: string; //文件浏览器搜索key
-	queryTaskCallback?: () => void;
-	jobUidRecord: Record<JobUid, SceneUid>; //查询工作id记录 jobs_uid->scene_uid
-	downloadTaskRecord: Record<SceneUid, DownloadTask>; //下载任务记录
-	sceneStatusRecord: Record<SceneUid, Realibox.TaskStatus>;
-	dowbnloadTaskCount: number; //下载任务数量
-};
+
 type FileRecordChangeCallback = (state: Pick<AppState, 'fileRecord'>) => void;
 type DownloadTaskQueryResponse = Array<{
 	data: {
@@ -26,7 +19,19 @@ type DownloadTaskQueryResponse = Array<{
 	name: string | null;
 	status: '110' | '200';
 }>;
+type AppState = {
+	fileRecord: Record<SceneUid, Realibox.File>; //当前所有文件
+	searchKey: string; //文件浏览器搜索key
+	taskSearchKey: string;
+	queryTaskCallback?: () => void;
+	jobUidRecord: Record<JobUid, SceneUid>; //查询工作id记录 jobs_uid->scene_uid
+	downloadTaskRecord: Record<SceneUid, DownloadTask>; //下载任务记录
+	sceneStatusRecord: Record<SceneUid, Realibox.TaskStatus>;
+	dowbnloadTaskCount: number; //下载任务数量
+};
 interface AppAction {
+	downloadOne: (task: DownloadTask) => Promise<void>;
+	downloadAll: () => void;
 	freshExploreFiles: () => Promise<void>; //刷新文件夹
 	queryTaskStatus: (cb?: () => void) => Promise<void>;
 	createParkTask: (file: Realibox.File) => Promise<void>;
@@ -35,6 +40,7 @@ interface AppAction {
 		record: Record<SceneUid, Realibox.File> | FileRecordChangeCallback
 	) => void;
 	updateSearchKey: (searchKey: string) => void;
+	updateTaskSearchKey: (searchKey: string) => void;
 	addJobUid: (jobUid: string, sceneUid: string) => void;
 	addDownloadTask: (task: DownloadTask) => void;
 	removeDownloadTask: (scene_uid: string) => void;
@@ -48,6 +54,7 @@ const useApp = create<AppState & AppAction>()(
 				fileRecord: {},
 				queryTaskCallback: undefined,
 				searchKey: '',
+				taskSearchKey: '',
 				jobUidRecord: {},
 				sceneStatusRecord: {},
 				dowbnloadTaskCount: 0,
@@ -175,6 +182,16 @@ const useApp = create<AppState & AppAction>()(
 				);
 			};
 
+			const updateTaskSearchKey = (searchKey: string) => {
+				set(
+					(state) => {
+						state.taskSearchKey = searchKey;
+					},
+					false,
+					'app/updateSearchKey'
+				);
+			};
+
 			/**
 			 * 刷新文件夹
 			 * @returns
@@ -236,9 +253,44 @@ const useApp = create<AppState & AppAction>()(
 					},
 				});
 			};
+			const downloadOne = async (task: DownloadTask) => {
+				console.log('download task:', task);
+				try {
+					await chrome.downloads.download({
+						url: `https:${task.downloadUrl}`,
+					});
+					set(
+						(state) => {
+							state.downloadTaskRecord[task.sceneUid].downloadStatus =
+								'success';
+						},
+						false,
+						'app/downloadFileSuccess'
+					);
+				} catch (err) {
+					set(
+						(state) => {
+							state.downloadTaskRecord[task.sceneUid].downloadStatus = 'fail';
+						},
+						false,
+						'app/downloadFileFail'
+					);
+				}
+			};
+
+			const downloadAll = () => {
+				const tasks = Object.values(get().downloadTaskRecord).filter(
+					(task) => !task.downloadStatus
+				);
+				tasks.forEach((task) => {
+					downloadOne(task);
+				});
+			};
 
 			return {
 				...state,
+				downloadOne,
+				downloadAll,
 				freshExploreFiles,
 				createParkTask,
 				queryTaskStatus,
@@ -249,6 +301,7 @@ const useApp = create<AppState & AppAction>()(
 				removeDownloadTask,
 				updateDownloadTaskRecord,
 				runQueryTaskStatusCallback,
+				updateTaskSearchKey,
 			};
 		})
 	)
