@@ -45,27 +45,25 @@ const Download = () => {
 	 * 监听查询任务状态
 	 */
 	useEffect(() => {
-		let queryTimer: number;
+		let queryTimer: NodeJS.Timeout;
 		const cycleQuery = () => {
-			if (!taskList.some((task) => task.status === 'QUERY_STATUS')) {
-				console.log('all task resolve', taskList);
-				return;
-			}
-			queryTaskStatus(() => {
-				queryTimer = setTimeout(() => {
-					cycleQuery();
-				}, 10000);
+			queryTaskStatus().then((res) => {
+				if (res.some && res.some((task) => task.status === '110')) {
+					queryTimer = setTimeout(() => {
+						cycleQuery();
+					}, 10000);
+				}
 			});
 		};
 		cycleQuery();
 		return () => {
 			clearTimeout(queryTimer);
 		};
-	}, [taskList]);
+	}, [queryTaskStatus]);
 
 	return (
-		<div className='mt-10 px-2 pt-4'>
-			<ul className='px-2'>
+		<div className='h-screen pb-8 pt-8'>
+			<ul className='flex flex-wrap'>
 				{taskList.map((task) => {
 					return (
 						<TaskListItem
@@ -90,10 +88,10 @@ const TaskListItem = ({ task, download, remove }: TaskListItemProps) => {
 	return (
 		<li
 			role='listitem'
-			className='hover:ring-indigo-50 ring-2 rounded ring-white/0 border-b-px border-gray-50'
+			className='w-1/2 p-2'
 			key={task.jobUid}>
 			<div
-				className='shadow-sm mb-4 p-2 flex justify-between items-end'
+				className='shadow-sm p-2 flex justify-between items-end hover:ring-indigo-50 ring-2 rounded ring-white/0 border-b-px border-gray-50'
 				tabIndex={0}>
 				<div>
 					<div>

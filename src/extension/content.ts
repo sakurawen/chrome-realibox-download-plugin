@@ -1,3 +1,39 @@
+import { MESSAGE_TYPE_KEY } from '@/shared/message';
+import 'webext-bridge';
+import { onMessage, sendMessage } from 'webext-bridge';
+
+sendMessage('ping_background', null);
+
+/**
+ * 监听页面url变化，触发文件夹更新
+ */
+window.addEventListener('message', (e) => {
+	const { type } = e.data;
+	if (type !== 'folderChange') {
+		return;
+	}
+	sendMessage<{}, MESSAGE_TYPE_KEY>(
+		'DEVTOLLS_FLUSH_FOLDER_NODES',
+		null,
+		'devtools'
+	);
+});
+
+/**
+ * 更新访问信息
+ */
+onMessage<{}, MESSAGE_TYPE_KEY>('CONTENT_UPDATE_ACCESS_INFO', () => {
+	const [parent_id, folder_id] = getParentIdAndFolderId(location.pathname);
+	const token = getToken();
+	const assessInfo = { parent_id, folder_id, token };
+	sendMessage<{}, MESSAGE_TYPE_KEY>(
+		'BACKGROUND_UPDATE_ACCESS_INFO',
+		assessInfo,
+		'background'
+	);
+	return assessInfo;
+});
+
 /**
  * 根据key获取cookie值
  * @param {string} key
@@ -14,23 +50,6 @@ const getCookie = (key: string) => {
 };
 
 const getToken = () => getCookie('hub_auth_token');
-
-chrome.runtime.onMessage.addListener(({ action, data }) => {
-	switch (true) {
-		case action === 'GET_ACCESS_INFO': {
-			const [parent_id, folder_id] = getParentIdAndFolderId(location.pathname);
-			const token = getToken();
-			chrome.runtime.sendMessage({
-				type: 'SET_ACCESS_INFO',
-				data: {
-					token,
-					parent_id,
-					folder_id,
-				},
-			});
-		}
-	}
-});
 
 /**
  * 获取项目和文件夹id
@@ -50,5 +69,3 @@ const getParentIdAndFolderId = (url: string /*  */) => {
 	}
 	return [parent_id, folder_id];
 };
-
-export {};

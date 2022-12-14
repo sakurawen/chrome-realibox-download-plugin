@@ -10,11 +10,12 @@ export default defineConfig({
 		},
 	},
 	build: {
+		emptyOutDir: false,
+		outDir: 'extension_dist',
 		rollupOptions: {
 			input: {
 				app: './index.html',
 				devtool: './devtools.html',
-				content: './src/extension/content.ts',
 				background: './src/extension/background.ts',
 			},
 			output: {

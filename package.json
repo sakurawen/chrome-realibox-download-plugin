@@ -4,14 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite build --watch",
-    "build": "tsc && vite build",
+    "dev": "npm run clear && run-p dev:*",
+    "dev:web": "vite build --watch",
+    "dev:content": "vite build --watch --config vite.config.content.ts",
+    "build": "npm run clear  && npm run build:web && npm run build:content",
+    "build:web": "tsc && vite build",
+    "build:content": "tsc && vite build --config vite.config.content.ts",
     "lint": "tsc --noEmit",
+    "clear": "rimraf extension",
     "preview": "vite preview"
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.0.1",
-    "@types/chrome": "^0.0.203",
     "classnames": "^2.3.2",
     "immer": "^9.0.16",
     "react": "^18.2.0",
@@ -22,11 +26,15 @@
     "zustand": "^4.1.5"
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.203",
+    "@types/node": "^18.11.15",
     "@types/react": "^18.0.24",
     "@types/react-dom": "^18.0.8",
     "@vitejs/plugin-react": "^2.2.0",
     "autoprefixer": "^10.4.13",
+    "npm-run-all": "^4.1.5",
     "postcss": "^8.4.19",
+    "rimraf": "^3.0.2",
     "tailwindcss": "^3.2.4",
     "typescript": "^4.9.3",
     "vite": "^3.2.3"

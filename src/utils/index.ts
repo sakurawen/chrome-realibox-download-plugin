@@ -22,13 +22,13 @@ export const getCurrentTab = async () => {
 };
 
 type ChromeSendMessage = {
-	type: keyof typeof MESSAGE_TYPE;
+	action: keyof typeof MESSAGE_TYPE;
 	data?: any;
 };
 
-export const chromeTabSendMessage = ({ type, data }: ChromeSendMessage) => {
+export const chromeTabSendMessage = ({ action, data }: ChromeSendMessage) => {
 	chrome.tabs.sendMessage(chrome.devtools.inspectedWindow.tabId, {
-		type,
+		action,
 		data,
 	});
 };

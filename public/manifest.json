@@ -11,9 +11,13 @@
     "downloads",
     "tabs"
   ],
+  "host_permissions":[
+    "https://hub.realibox.com/"
+  ],
   "background": {
     "service_worker": "js/background.js",
     "type": "module"
+   
   },
   "content_scripts": [
     {
@@ -21,7 +25,7 @@
         "<all_urls>"
       ],
       "js": [
-        "js/content.js"
+        "content/index.js"
       ]
     }
   ]

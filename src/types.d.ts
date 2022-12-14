@@ -27,4 +27,20 @@ declare module Realibox {
 		| 'GET_DOWNLOAD'
 		| 'ERROR'
 		| undefined;
+	type QueryTaskResult = {
+		data: {
+			file_url?: string;
+		};
+		job_uid: string;
+		message: string;
+		name: string | null;
+		status: '110' | '200';
+	};
+	type QueryTaskResponse = {
+		code: number;
+		info: {};
+		list: {
+			data: Array<QueryTaskResult>;
+		};
+	};
 }
