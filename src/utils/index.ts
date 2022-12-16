@@ -6,6 +6,7 @@ const success = (msg: string) => {
 			border: '1px solid #818cf8',
 			padding: '4px 6px',
 			color: '#818cf8',
+			whiteSpace: 'pre-wrap',
 		},
 		iconTheme: {
 			primary: '#818cf8',
@@ -13,14 +14,31 @@ const success = (msg: string) => {
 		},
 	});
 };
-
-const fail = (msg: string) => {
+// 时间长一点的fail
+const error = (msg: string) => {
 	t.error(msg, {
-    duration:5000,
+		duration: 10000,
 		style: {
 			border: '1px solid #f43f5e',
 			padding: '4px 6px',
 			color: '#f43f5e',
+			whiteSpace: 'pre-wrap',
+		},
+		iconTheme: {
+			primary: '#f43f5e',
+			secondary: 'white',
+		},
+	});
+};
+
+const fail = (msg: string) => {
+	t.error(msg, {
+		duration: 5000,
+		style: {
+			border: '1px solid #f43f5e',
+			padding: '4px 6px',
+			color: '#f43f5e',
+			whiteSpace: 'pre-wrap',
 		},
 		iconTheme: {
 			primary: '#f43f5e',
@@ -31,5 +49,6 @@ const fail = (msg: string) => {
 
 export const toast = {
 	success,
+	error,
 	fail,
 };

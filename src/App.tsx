@@ -18,7 +18,7 @@ const tabIdxMap = {
 
 const App = () => {
 	const {
-		dowbnloadTaskCount,
+		downloadTaskCount,
 		searchKey,
 		taskSearchKey,
 		downloadTaskRecord,
@@ -151,10 +151,10 @@ const App = () => {
 								className={cx(
 									'hidden w-5 h-5 ml-1 rounded-full not-italic scale-75 bg-indigo-500 text-white text-xs justify-center items-center',
 									{
-										'!inline-flex': dowbnloadTaskCount !== 0,
+										'!inline-flex': downloadTaskCount !== 0,
 									}
 								)}>
-								{dowbnloadTaskCount}
+								{downloadTaskCount}
 							</i>
 						</Tab>
 						<div

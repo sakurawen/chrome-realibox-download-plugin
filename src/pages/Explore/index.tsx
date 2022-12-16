@@ -44,7 +44,7 @@ function Explore() {
 				<div className='w-full'>
 					<div className='flex flex-wrap items-center select-none  px-2 space-x-4'>
 						<div className='flex items-center text-xs space-x-1'>
-							<i className='block w-4 h-4 rounded bg-blue-100'></i>
+							<i className='block w-4 h-4 rounded bg-indigo-100'></i>
 							<span>打包中</span>
 						</div>
 						<div className='flex items-center text-xs space-x-1'>
@@ -101,7 +101,7 @@ function Explore() {
 												className={cx(
 													'block w-4 h-4 absolute  top-1 left-1 rounded',
 													{
-														'bg-blue-100':
+														'bg-indigo-100':
 															sceneStatusRecord[item.scene_uid] ===
 															'QUERY_STATUS',
 														'bg-green-100':
@@ -112,12 +112,13 @@ function Explore() {
 													}
 												)}></i>
 											<img
-												className='w-full rounded-md  object-cover aspect-video'
+												onDragStart={(e) => e.preventDefault()}
+												className='w-full pointer-events-none select-none rounded-md  object-cover aspect-video'
 												src={'https:' + item.thumbnail}
 												alt='thumbnail'
 											/>
 											<div className='absolute bottom-0 left-1 w-full overflow-hidden text-xs whitespace-pre-wrap text-gray-500 '>
-												<span className='inline-block rounded max-w-[80%] overflow-hidden text-ellipsis text-indigo-50 px-1 bg-black/40'>
+												<span className='select-all cursor-pointer inline-block rounded max-w-[80%] overflow-hidden text-ellipsis text-indigo-50 px-1 bg-black/40'>
 													{item.scene_uid}
 												</span>
 											</div>

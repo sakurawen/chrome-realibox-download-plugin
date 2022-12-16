@@ -4,6 +4,7 @@ import { sendMessage } from '@/shared/webextBridge';
 import create from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { toast } from '@/utils';
 
 type SceneUid = string;
 type JobUid = string;
@@ -19,6 +20,7 @@ type AppState = {
 		split: 'line' | 'default'; // line 回车区分，default 逗号区分
 		parentId: string;
 		batchSceneIds: string;
+		loading: boolean; //添加批次loading
 	};
 	assessInfo: {
 		//访问信息
@@ -31,14 +33,14 @@ type AppState = {
 	jobUidRecord: Record<JobUid, SceneUid>; //查询工作id记录 jobs_uid->scene_uid
 	downloadTaskRecord: Record<SceneUid, DownloadTask>; //下载任务记录
 	sceneStatusRecord: Record<SceneUid, Realibox.TaskStatus>;
-	dowbnloadTaskCount: number; //下载任务数量
+	downloadTaskCount: number; //下载任务数量
 };
 interface AppAction {
 	setCurrentTab: (tab: AppState['currentTab']) => void;
 	downloadOne: (task: DownloadTask) => Promise<void>;
 	downloadAll: () => void;
 	freshExploreFiles: () => Promise<void>; //刷新文件夹
-	queryTaskStatus: () => Promise<Realibox.QueryTaskResult[]>;
+	queryTaskStatus: () => Promise<Realibox.QueryTaskResult[] | undefined>;
 	createParkTask: (file: Realibox.File) => Promise<void>;
 	updateDownloadTaskRecord: (data: Realibox.QueryTaskResult[]) => void;
 	updateFileRecord: (
@@ -54,7 +56,10 @@ interface AppAction {
 		folder_id: string;
 		token: string;
 	}>;
-  setDownloadTaskErr:(sceneId:string)=>void,
+	resetApp: () => void;
+	resetBatch: () => void;
+	setBatchLoading: (val: boolean) => void;
+	setDownloadTaskErr: (sceneId: string) => void;
 	setBatchSceneIds: (val: string) => void;
 	setBatchParentId: (val: string) => void;
 	setBatchSplit: (val: AppState['batch']['split']) => void;
@@ -64,7 +69,7 @@ interface AppAction {
 const useApp = create<AppState & AppAction>()(
 	immer(
 		devtools((set, get) => {
-			const state: AppState = {
+			const originState: AppState = {
 				fileRecord: {},
 				currentTab: 'explore',
 				assessInfo: {
@@ -73,9 +78,10 @@ const useApp = create<AppState & AppAction>()(
 					token: '',
 				},
 				batch: {
+					loading: false,
 					split: 'default',
 					parentId: '',
-					batchSceneIds: '',
+					batchSceneIds: ``,
 				},
 				exploreLoading: false,
 				queryTaskCallback: undefined,
@@ -83,9 +89,9 @@ const useApp = create<AppState & AppAction>()(
 				taskSearchKey: '',
 				jobUidRecord: {},
 				sceneStatusRecord: {},
-				dowbnloadTaskCount: 0,
+				downloadTaskCount: 0,
 				downloadTaskRecord: {},
-			};
+			} as const;
 
 			const setBatchSplit = (val: AppState['batch']['split']) => {
 				set(
@@ -137,7 +143,7 @@ const useApp = create<AppState & AppAction>()(
 				set(
 					(state) => {
 						state.downloadTaskRecord[task.sceneUid] = task;
-						state.dowbnloadTaskCount += 1;
+						state.downloadTaskCount += 1;
 					},
 					false,
 					'app/addDownloadTask'
@@ -154,7 +160,7 @@ const useApp = create<AppState & AppAction>()(
 							const jobsId = state.downloadTaskRecord[scene_uid].jobUid;
 							delete state.jobUidRecord[jobsId];
 							delete state.downloadTaskRecord[scene_uid];
-							state.dowbnloadTaskCount -= 1;
+							state.downloadTaskCount -= 1;
 						}
 					},
 					false,
@@ -247,6 +253,16 @@ const useApp = create<AppState & AppAction>()(
 				);
 			};
 
+			const resetBatch = () => {
+				set(
+					(state) => {
+						state.batch = originState.batch;
+					},
+					false,
+					'app/resetBatch'
+				);
+			};
+
 			/**
 			 * 更新任务搜索key
 			 * @param searchKey
@@ -301,6 +317,11 @@ const useApp = create<AppState & AppAction>()(
 			 * @returns
 			 */
 			const createParkTask = async (file: Realibox.File) => {
+				// 创建过下载任务的场景就返回
+				if (get().downloadTaskRecord[file.scene_uid]) {
+					toast.success(`sid:${file.scene_uid}已有打包任务`);
+					return;
+				}
 				try {
 					const result = await sendMessage<any>(
 						(type) => type.BACKGROUND_CREATE_PACK_TASK,
@@ -316,7 +337,7 @@ const useApp = create<AppState & AppAction>()(
 						jobUid: job_uid,
 						title: name,
 						sceneUid: scene_uid,
-						order: get().dowbnloadTaskCount + 1,
+						order: get().downloadTaskCount + 1,
 					});
 					addJobUid(job_uid, scene_uid);
 					addDownloadTask(task);
@@ -325,10 +346,10 @@ const useApp = create<AppState & AppAction>()(
 				}
 			};
 
-      /**
-       * 标记下载任务失败
-       * @param sceneId 
-       */
+			/**
+			 * 标记下载任务失败
+			 * @param sceneId
+			 */
 			const setDownloadTaskErr = (sceneId: string) => {
 				set(
 					(state) => {
@@ -346,7 +367,7 @@ const useApp = create<AppState & AppAction>()(
 			 */
 			const queryTaskStatus = async () => {
 				if (Object.keys(get().jobUidRecord).length === 0) return;
-				const result = await sendMessage<any>(
+				const result = await sendMessage<Realibox.QueryTaskResult[]>(
 					(type) => type.BACKGROUND_QUERY_TASK_STATUS,
 					{
 						job_uids: Object.keys(get().jobUidRecord),
@@ -420,22 +441,51 @@ const useApp = create<AppState & AppAction>()(
 				return result;
 			};
 
+			const setBatchLoading = (val: boolean) => {
+				set(
+					(state) => {
+						state.batch.loading = val;
+					},
+					false,
+					'setBatchLoading'
+				);
+			};
+
 			const getBatchSceneIds = () => {
-				const batchSceneIdsStr = get().batch.batchSceneIds.replace(/\s/g, '');
+				const batchSceneIdsStr = get().batch.batchSceneIds;
 				const batchSplit = get().batch.split;
 				if (batchSceneIdsStr.length === 0) return [];
 				if (batchSplit === 'default') {
-					return batchSceneIdsStr.split(',').filter((i) => !!i);
+					return batchSceneIdsStr
+						.split(/,|，/)
+						.map((i) => i.replace(/\s/g, ''))
+						.filter((i) => !!i);
 				}
 				if (batchSplit === 'line') {
-					return batchSceneIdsStr.split('\n').filter((i) => !!i);
+					return batchSceneIdsStr
+						.split('\n')
+						.map((i) => i.replace(/\s/g, ''))
+						.filter((i) => !!i);
 				}
 				return [];
 			};
+
+			const resetApp = () => {
+				set((state) => {
+					state.batch = originState.batch;
+					state.taskSearchKey = originState.taskSearchKey;
+					state.searchKey = originState.searchKey;
+					state.jobUidRecord = originState.jobUidRecord;
+					state.downloadTaskCount = originState.downloadTaskCount;
+					state.sceneStatusRecord = originState.sceneStatusRecord;
+					state.downloadTaskRecord = originState.downloadTaskRecord;
+				});
+			};
 			return {
-				...state,
+				...originState,
 				setCurrentTab,
 				downloadOne,
+				resetApp,
 				downloadAll,
 				freshExploreFiles,
 				createParkTask,
@@ -452,7 +502,9 @@ const useApp = create<AppState & AppAction>()(
 				setBatchSceneIds,
 				setBatchSplit,
 				getBatchSceneIds,
-        setDownloadTaskErr
+				setDownloadTaskErr,
+				setBatchLoading,
+				resetBatch,
 			};
 		})
 	)

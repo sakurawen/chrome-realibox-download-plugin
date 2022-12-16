@@ -1,8 +1,10 @@
-import { useApp } from '@/store';
-import { RadioGroup } from '@headlessui/react';
-import { toast } from '@/utils';
 import { sendMessage } from '@/shared/webextBridge';
+import { useApp } from '@/store';
 import DownloadTask from '@/store/entity/DownloadTask';
+import { toast } from '@/utils';
+import { RadioGroup } from '@headlessui/react';
+import cx from 'classnames';
+
 const createTask = (parent_id: string, scene_uid: string) => {
 	return async () => {
 		try {
@@ -19,8 +21,9 @@ const createTask = (parent_id: string, scene_uid: string) => {
 				'background'
 			);
 			return result;
-		} catch (err) {
-			throw err;
+		} catch {
+			// 报错的时候抛出场景id
+			throw new Error(scene_uid);
 		}
 	};
 };
@@ -38,8 +41,11 @@ const Batch = () => {
 		getBatchSceneIds,
 		addDownloadTask,
 		addJobUid,
-		dowbnloadTaskCount,
+		downloadTaskCount,
+		setBatchLoading,
 		setDownloadTaskErr,
+		downloadTaskRecord,
+		resetBatch,
 	} = useApp();
 
 	const handleAddTaskBatch = () => {
@@ -51,15 +57,28 @@ const Batch = () => {
 			parentId,
 			sceneIds,
 		});
-		const createFunMap: Record<string, ReturnType<typeof createTask>> = {};
+		const createFuncMap: Record<string, ReturnType<typeof createTask>> = {};
 		sceneIds.forEach((sceneId) => {
-			createFunMap[sceneId] = createTask(parentId, sceneId);
+			if (downloadTaskRecord[sceneId]) {
+				toast.fail(`sid:${sceneId}已有打包任务`);
+				return;
+			}
+			createFuncMap[sceneId] = createTask(parentId, sceneId);
 		});
-		Object.keys(createFunMap).forEach((sceneId) => {
-			const createFn = createFunMap[sceneId];
-			createFn()
-				.then((result) => {
-					const { job_uid, scene_uid, name } = result;
+		setBatchLoading(true);
+		Promise.allSettled(Object.values(createFuncMap).map((func) => func()))
+			.then((results) => {
+				const failTaskScenes: string[] = [];
+				results.forEach((result) => {
+					// fail
+					if (result.status === 'rejected') {
+						const failSceneId = result.reason.message;
+						failTaskScenes.push(failSceneId);
+						setDownloadTaskErr(failSceneId);
+						return;
+					}
+					// success
+					const { job_uid, scene_uid, name } = result.value;
 					if (!job_uid) {
 						return;
 					}
@@ -68,17 +87,27 @@ const Batch = () => {
 						jobUid: job_uid,
 						title: name,
 						sceneUid: scene_uid,
-						order: dowbnloadTaskCount + 1,
+						order: downloadTaskCount + 1,
 					});
 					addJobUid(job_uid, scene_uid);
 					addDownloadTask(task);
-				})
-				.catch((err) => {
-					setDownloadTaskErr(sceneId);
-					console.error('batch create task error:', err);
-					toast.fail(`创建打包任务失败,场景ID${sceneId}`);
 				});
-		});
+				if (failTaskScenes.length === 0) {
+					toast.success('打包任务批次，添加成功');
+				} else {
+					failTaskScenes.forEach((sceneId) => {
+						toast.error(`创建打包任务失败,sid:${sceneId}`);
+					});
+					toast.success(
+						`创建打包任务成功场景数量：${
+							results.length - failTaskScenes.length
+						}`
+					);
+				}
+			})
+			.finally(() => {
+				setBatchLoading(false);
+			});
 	};
 
 	/**
@@ -86,11 +115,19 @@ const Batch = () => {
 	 * @param value
 	 */
 	const handleBatchSplitSymbolChange = (value: 'default' | 'line') => {
+		console.log('sp change:', value);
 		setBatchSplit(value);
 	};
 
 	return (
-		<div className='px-2 pt-10 h-screen'>
+		<div className='px-2 pt-10 h-screen '>
+			<div
+				className={cx(
+					'h-full w-full z-50 fixed text-indigo-600 top-0 left-0 bg-indigo-50/50 backdrop-blur flex justify-center items-center',
+					[batch.loading ? 'flex' : 'hidden']
+				)}>
+				添加任务批次中...
+			</div>
 			<div className=' space-y-4'>
 				<div>
 					<p>场景ID划分</p>
@@ -127,6 +164,7 @@ const Batch = () => {
 						Parent ID:
 					</label>
 					<input
+						placeholder='输入 parent_id'
 						className='block w-full p-2 outline-none border-none rounded ring-1  ring-indigo-100 focus:ring-indigo-200 focus:ring-2'
 						type='text'
 						value={batch.parentId}
@@ -146,9 +184,10 @@ const Batch = () => {
 						className='w-full p-2 outline-none border-none rounded ring-1  ring-indigo-100 focus:ring-indigo-200 focus:ring-2'
 						name='scene_ids'
 						id='BatchInput'
+						placeholder='输入多个 scene_id'
 						rows={10}></textarea>
 				</div>
-				<div>
+				<div className='space-x-2 flex'>
 					<button
 						onClick={handleAddTaskBatch}
 						className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
@@ -166,6 +205,11 @@ const Batch = () => {
 							/>
 						</svg>
 						<span>批量添加打包任务</span>
+					</button>
+					<button
+						className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'
+						onClick={resetBatch}>
+						Reset
 					</button>
 				</div>
 			</div>

@@ -2,7 +2,6 @@ import { useApp } from '@/store';
 import DownloadTask from '@/store/entity/DownloadTask';
 import cx from 'classnames';
 import { useDeferredValue, useEffect, useMemo } from 'react';
-
 const getStatusText = (status: Realibox.TaskStatus) => {
 	switch (true) {
 		case status === 'ERROR':
@@ -25,6 +24,7 @@ const Download = () => {
 		queryTaskStatus,
 		downloadOne,
 		taskSearchKey,
+		resetApp,
 	} = useApp();
 
 	const deferredTaskSearchKey = useDeferredValue(taskSearchKey);
@@ -74,6 +74,16 @@ const Download = () => {
 					);
 				})}
 			</ul>
+			<div
+				className={cx('space-x-2 px-2 my-2', [
+					taskList.length === 0 ? 'hidden' : 'flex',
+				])}>
+				<button
+					onClick={resetApp}
+					className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
+					重制下载相关
+				</button>
+			</div>
 		</div>
 	);
 };
@@ -107,7 +117,7 @@ const TaskListItem = ({ task, download, remove }: TaskListItemProps) => {
 								{
 									'bg-red-100': task.status === 'ERROR',
 									'bg-green-100': task.status === 'GET_DOWNLOAD',
-									'bg-blue-100': task.status === 'QUERY_STATUS',
+									'bg-indigo-100': task.status === 'QUERY_STATUS',
 								}
 							)}>
 							{getStatusText(task.status)}
