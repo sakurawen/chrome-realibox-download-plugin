@@ -35,7 +35,7 @@ const Download = () => {
 		return list.filter(
 			(item) =>
 				item.title
-					.toUpperCase()
+					?.toUpperCase()
 					.includes(deferredTaskSearchKey.toUpperCase()) ||
 				item.sceneUid.includes(deferredTaskSearchKey)
 		);
@@ -48,7 +48,7 @@ const Download = () => {
 		let queryTimer: NodeJS.Timeout;
 		const cycleQuery = () => {
 			queryTaskStatus().then((res) => {
-				if (res.some && res.some((task) => task.status === '110')) {
+				if (res?.some?.((task) => task.status === '110')) {
 					queryTimer = setTimeout(() => {
 						cycleQuery();
 					}, 10000);

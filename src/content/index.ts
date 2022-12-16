@@ -1,8 +1,7 @@
-import { MESSAGE_TYPE_KEY } from '@/shared/message';
+import { onMessage, sendMessage } from '@/shared/webextBridge';
 import 'webext-bridge';
-import { onMessage, sendMessage } from 'webext-bridge';
+sendMessage('ping_background', null, 'background');
 
-sendMessage('ping_background', null);
 
 /**
  * 监听页面url变化，触发文件夹更新
@@ -12,23 +11,23 @@ window.addEventListener('message', (e) => {
 	if (type !== 'folderChange') {
 		return;
 	}
-	sendMessage<{}, MESSAGE_TYPE_KEY>(
-		'DEVTOLLS_FLUSH_FOLDER_NODES',
-		null,
-		'devtools'
-	);
+	sendMessage<{}>((t) => t.DEVTOLLS_FLUSH_FOLDER_NODES, null, 'devtools');
 });
 
 /**
  * 更新访问信息
  */
-onMessage<{}, MESSAGE_TYPE_KEY>('CONTENT_UPDATE_ACCESS_INFO', () => {
+onMessage<{}>('CONTENT_UPDATE_ACCESS_INFO', () => {
 	const [parent_id, folder_id] = getParentIdAndFolderId(location.pathname);
 	const token = getToken();
 	const assessInfo = { parent_id, folder_id, token };
-	sendMessage<{}, MESSAGE_TYPE_KEY>(
-		'BACKGROUND_UPDATE_ACCESS_INFO',
-		assessInfo,
+	sendMessage<{}>(
+		(t) => t.BACKGROUND_UPDATE_ACCESS_INFO,
+		{
+			parent_id: parent_id || '',
+			folder_id: folder_id || '',
+			token: token || '',
+		},
 		'background'
 	);
 	return assessInfo;

@@ -1,6 +1,34 @@
 import { useApp } from '@/store';
-import cx from 'classnames';
+import { RadioGroup } from '@headlessui/react';
+import { toast } from '@/utils';
+import { sendMessage } from '@/shared/webextBridge';
+import DownloadTask from '@/store/entity/DownloadTask';
+const createTask = (parent_id: string, scene_uid: string) => {
+	return async () => {
+		try {
+			const result = await sendMessage<{
+				job_uid: string;
+				scene_uid: string;
+				name: string;
+			}>(
+				(type) => type.BACKGROUND_CREATE_PACK_TASK,
+				{
+					parent_id,
+					scene_uid,
+				},
+				'background'
+			);
+			return result;
+		} catch (err) {
+			throw err;
+		}
+	};
+};
 
+/**
+ * 按照scene_id 批次下载
+ * @returns
+ */
 const Batch = () => {
 	const {
 		batch,
@@ -8,34 +36,89 @@ const Batch = () => {
 		setBatchSceneIds,
 		setBatchSplit,
 		getBatchSceneIds,
+		addDownloadTask,
+		addJobUid,
+		dowbnloadTaskCount,
+		setDownloadTaskErr,
 	} = useApp();
-	const splitLine = batch.split === 'line';
-	const splitDefault = batch.split === 'default';
 
-	const handleStart = () => {
-		console.log('scene ids list:', getBatchSceneIds());
+	const handleAddTaskBatch = () => {
+		const sceneIds = getBatchSceneIds();
+		const parentId = batch.parentId;
+		if (sceneIds.length === 0 || parentId.replace(/\s/g, '').length === 0)
+			return;
+		console.log('batch:', {
+			parentId,
+			sceneIds,
+		});
+		const createFunMap: Record<string, ReturnType<typeof createTask>> = {};
+		sceneIds.forEach((sceneId) => {
+			createFunMap[sceneId] = createTask(parentId, sceneId);
+		});
+		Object.keys(createFunMap).forEach((sceneId) => {
+			const createFn = createFunMap[sceneId];
+			createFn()
+				.then((result) => {
+					const { job_uid, scene_uid, name } = result;
+					if (!job_uid) {
+						return;
+					}
+					const task = new DownloadTask({
+						status: 'QUERY_STATUS',
+						jobUid: job_uid,
+						title: name,
+						sceneUid: scene_uid,
+						order: dowbnloadTaskCount + 1,
+					});
+					addJobUid(job_uid, scene_uid);
+					addDownloadTask(task);
+				})
+				.catch((err) => {
+					setDownloadTaskErr(sceneId);
+					console.error('batch create task error:', err);
+					toast.fail(`创建打包任务失败,场景ID${sceneId}`);
+				});
+		});
 	};
+
+	/**
+	 * 更新场景id划分符号
+	 * @param value
+	 */
+	const handleBatchSplitSymbolChange = (value: 'default' | 'line') => {
+		setBatchSplit(value);
+	};
+
 	return (
 		<div className='px-2 pt-10 h-screen'>
 			<div className=' space-y-4'>
 				<div>
 					<p>场景ID划分</p>
-					<div className='pt-2 text-xs space-x-2'>
-						<button
-							onClick={() => setBatchSplit('default')}
-							className={cx('p-1 rounded bg-gray-100 w-24', {
-								'!bg-indigo-100': splitDefault,
-							})}>
+					<RadioGroup
+						defaultValue='default'
+						onChange={handleBatchSplitSymbolChange}
+						className='pt-2 text-xs space-x-2 '>
+						<RadioGroup.Option
+							as='button'
+							className={({ checked }) => `
+                text-center inline-block p-1 rounded w-24 ${
+									checked ? 'bg-indigo-100' : 'bg-gray-100'
+								}
+              `}
+							value='default'>
 							按逗号
-						</button>
-						<button
-							onClick={() => setBatchSplit('line')}
-							className={cx('p-1 rounded bg-gray-100 w-24', {
-								'!bg-indigo-100': splitLine,
-							})}>
+						</RadioGroup.Option>
+						<RadioGroup.Option
+							as='button'
+							className={({ checked }) => `
+              text-center inline-block p-1 rounded w-24 ${
+								checked ? 'bg-indigo-100' : 'bg-gray-100'
+							}
+            `}
+							value='line'>
 							按行
-						</button>
-					</div>
+						</RadioGroup.Option>
+					</RadioGroup>
 				</div>
 				<div>
 					<label
@@ -66,7 +149,9 @@ const Batch = () => {
 						rows={10}></textarea>
 				</div>
 				<div>
-					<button onClick={handleStart} className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
+					<button
+						onClick={handleAddTaskBatch}
+						className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
 							fill='none'

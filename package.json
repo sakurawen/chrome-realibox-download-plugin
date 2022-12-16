@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npm run clear && run-p dev:*",
+    "dev": "run-p clear dev:*",
     "dev:web": "vite build --watch",
     "dev:content": "vite build --watch --config vite.config.content.ts",
-    "build": "npm run clear  && npm run build:web && npm run build:content",
+    "build": "run-p clear build:*",
     "build:web": "tsc && vite build",
     "build:content": "tsc && vite build --config vite.config.content.ts",
     "lint": "tsc --noEmit",
@@ -15,13 +15,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@radix-ui/react-tabs": "^1.0.1",
+    "@headlessui/react": "^1.7.5",
     "classnames": "^2.3.2",
     "immer": "^9.0.16",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.0",
     "react-tracked": "^1.7.10",
-    "use-immer": "^0.8.1",
     "webext-bridge": "^5.0.5",
     "zustand": "^4.1.5"
   },
@@ -36,6 +36,7 @@
     "postcss": "^8.4.19",
     "rimraf": "^3.0.2",
     "tailwindcss": "^3.2.4",
+    "type-fest": "^3.4.0",
     "typescript": "^4.9.3",
     "vite": "^3.2.3"
   }

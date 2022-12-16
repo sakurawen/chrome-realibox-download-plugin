@@ -116,8 +116,8 @@ function Explore() {
 												src={'https:' + item.thumbnail}
 												alt='thumbnail'
 											/>
-											<div className='absolute bottom-0 left-0 overflow-hidden text-xs whitespace-pre-wrap text-gray-500 '>
-												<span className='inline-block rounded text-indigo-50 px-1 bg-black/40'>
+											<div className='absolute bottom-0 left-1 w-full overflow-hidden text-xs whitespace-pre-wrap text-gray-500 '>
+												<span className='inline-block rounded max-w-[80%] overflow-hidden text-ellipsis text-indigo-50 px-1 bg-black/40'>
 													{item.scene_uid}
 												</span>
 											</div>

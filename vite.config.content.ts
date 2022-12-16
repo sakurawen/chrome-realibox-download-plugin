@@ -11,11 +11,11 @@ export default defineConfig({
 	build: {
     emptyOutDir:false,
     lib: {
-      entry:'./src/extension/content.ts',
+      entry:'./src/content/index.ts',
       name: 'content',
       formats: ['iife']
     },
-    outDir:"extension_dist/content",
+    outDir:"extension/content",
 		rollupOptions: {
 			output: {
 				entryFileNames: 'index.js',

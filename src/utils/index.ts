@@ -1,34 +1,35 @@
-import { MESSAGE_TYPE } from '@/shared/message';
-export const getCookie = (name: string) => {
-	let arr;
-	const reg = new RegExp('(^| )' + name + '=([^;]*)(;|$)');
-	if ((arr = document.cookie.match(reg))) {
-		return unescape(arr[2]);
-	} else {
-		return '';
-	}
-};
+import { toast as t } from 'react-hot-toast';
 
-/**
- * 获取当前活跃tab
- * @returns
- */
-export const getCurrentTab = async () => {
-	const [tab] = await chrome.tabs.query({
-		active: true,
-		currentWindow: true,
+const success = (msg: string) => {
+	t.success(msg, {
+		style: {
+			border: '1px solid #818cf8',
+			padding: '4px 6px',
+			color: '#818cf8',
+		},
+		iconTheme: {
+			primary: '#818cf8',
+			secondary: 'white',
+		},
 	});
-	return tab;
 };
 
-type ChromeSendMessage = {
-	action: keyof typeof MESSAGE_TYPE;
-	data?: any;
-};
-
-export const chromeTabSendMessage = ({ action, data }: ChromeSendMessage) => {
-	chrome.tabs.sendMessage(chrome.devtools.inspectedWindow.tabId, {
-		action,
-		data,
+const fail = (msg: string) => {
+	t.error(msg, {
+    duration:5000,
+		style: {
+			border: '1px solid #f43f5e',
+			padding: '4px 6px',
+			color: '#f43f5e',
+		},
+		iconTheme: {
+			primary: '#f43f5e',
+			secondary: 'white',
+		},
 	});
+};
+
+export const toast = {
+	success,
+	fail,
 };

@@ -1,7 +1,6 @@
-import { MESSAGE_TYPE_KEY } from '@/shared/message';
 import DownloadTask from '@/store/entity/DownloadTask';
 import { createTrackedSelector } from 'react-tracked';
-import { sendMessage } from 'webext-bridge';
+import { sendMessage } from '@/shared/webextBridge';
 import create from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
@@ -55,6 +54,7 @@ interface AppAction {
 		folder_id: string;
 		token: string;
 	}>;
+  setDownloadTaskErr:(sceneId:string)=>void,
 	setBatchSceneIds: (val: string) => void;
 	setBatchParentId: (val: string) => void;
 	setBatchSplit: (val: AppState['batch']['split']) => void;
@@ -275,10 +275,11 @@ const useApp = create<AppState & AppAction>()(
 				);
 				try {
 					await updateAssessInfo();
-					const result = await sendMessage<
-						Record<string, Realibox.File>,
-						MESSAGE_TYPE_KEY
-					>('BACKGROUND_FLUSH_FOLDER_NODES', null, 'background');
+					const result = await sendMessage<Record<string, Realibox.File>>(
+						(type) => type.BACKGROUND_FLUSH_FOLDER_NODES,
+						null,
+						'background'
+					);
 					updateFileRecord(result);
 				} finally {
 					// 最少loading 500ms
@@ -301,8 +302,8 @@ const useApp = create<AppState & AppAction>()(
 			 */
 			const createParkTask = async (file: Realibox.File) => {
 				try {
-					const result = await sendMessage<any, MESSAGE_TYPE_KEY>(
-						'BACKGROUND_CREATE_PACK_TASK',
+					const result = await sendMessage<any>(
+						(type) => type.BACKGROUND_CREATE_PACK_TASK,
 						file,
 						'background'
 					);
@@ -320,14 +321,23 @@ const useApp = create<AppState & AppAction>()(
 					addJobUid(job_uid, scene_uid);
 					addDownloadTask(task);
 				} catch (err) {
-					set(
-						(state) => {
-							state.sceneStatusRecord[file.scene_uid] = 'ERROR';
-						},
-						false,
-						'app/createParkTaskError'
-					);
+					setDownloadTaskErr(file.scene_uid);
 				}
+			};
+
+      /**
+       * 标记下载任务失败
+       * @param sceneId 
+       */
+			const setDownloadTaskErr = (sceneId: string) => {
+				set(
+					(state) => {
+						if (!state.sceneStatusRecord[sceneId]) return;
+						state.sceneStatusRecord[sceneId] = 'ERROR';
+					},
+					false,
+					'app/createParkTaskError'
+				);
 			};
 
 			/**
@@ -336,11 +346,12 @@ const useApp = create<AppState & AppAction>()(
 			 */
 			const queryTaskStatus = async () => {
 				if (Object.keys(get().jobUidRecord).length === 0) return;
-				const result = await sendMessage<any, MESSAGE_TYPE_KEY>(
-					'BACKGROUND_QUERY_TASK_STATUS',
+				const result = await sendMessage<any>(
+					(type) => type.BACKGROUND_QUERY_TASK_STATUS,
 					{
 						job_uids: Object.keys(get().jobUidRecord),
-					}
+					},
+					'background'
 				);
 				if (result.length === 0) return;
 				console.log('query task result:', result, get().downloadTaskRecord);
@@ -355,7 +366,7 @@ const useApp = create<AppState & AppAction>()(
 			const downloadOne = async (task: DownloadTask) => {
 				console.log('download task:', task);
 				try {
-					await chrome.downloads.download({
+					await browser.downloads.download({
 						url: `https:${task.downloadUrl}`,
 					});
 					set(
@@ -394,14 +405,11 @@ const useApp = create<AppState & AppAction>()(
 			 * @returns
 			 */
 			const updateAssessInfo = async () => {
-				const result = await sendMessage<
-					{
-						parent_id: string;
-						folder_id: string;
-						token: string;
-					},
-					MESSAGE_TYPE_KEY
-				>('CONTENT_UPDATE_ACCESS_INFO', null, 'content-script');
+				const result = await sendMessage<{
+					parent_id: string;
+					folder_id: string;
+					token: string;
+				}>((type) => type.CONTENT_UPDATE_ACCESS_INFO, null, 'content-script');
 				set(
 					(state) => {
 						state.assessInfo = result;
@@ -413,7 +421,7 @@ const useApp = create<AppState & AppAction>()(
 			};
 
 			const getBatchSceneIds = () => {
-				const batchSceneIdsStr = get().batch.batchSceneIds.trim();
+				const batchSceneIdsStr = get().batch.batchSceneIds.replace(/\s/g, '');
 				const batchSplit = get().batch.split;
 				if (batchSceneIdsStr.length === 0) return [];
 				if (batchSplit === 'default') {
@@ -422,7 +430,7 @@ const useApp = create<AppState & AppAction>()(
 				if (batchSplit === 'line') {
 					return batchSceneIdsStr.split('\n').filter((i) => !!i);
 				}
-        return []
+				return [];
 			};
 			return {
 				...state,
@@ -444,6 +452,7 @@ const useApp = create<AppState & AppAction>()(
 				setBatchSceneIds,
 				setBatchSplit,
 				getBatchSceneIds,
+        setDownloadTaskErr
 			};
 		})
 	)

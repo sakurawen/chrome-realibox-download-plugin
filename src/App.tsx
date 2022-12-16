@@ -3,12 +3,18 @@ import Download from '@/pages/Download';
 import Explore from '@/pages/Explore';
 import Batch from '@/pages/Batch';
 import { useApp } from '@/store';
-import * as Tabs from '@radix-ui/react-tabs';
 import cx from 'classnames';
 import { useMemo } from 'react';
-import { sendMessage } from 'webext-bridge';
+import { sendMessage } from '@/shared/webextBridge';
 import useOnceEffect from './hooks/useOnceEffect';
-import { MESSAGE_TYPE_KEY } from './shared/message';
+import { Tab } from '@headlessui/react';
+import { Toaster } from 'react-hot-toast';
+
+const tabIdxMap = {
+	0: 'explore',
+	1: 'batch',
+	2: 'download',
+} as const;
 
 const App = () => {
 	const {
@@ -52,11 +58,11 @@ const App = () => {
 	}, [downloadTaskRecord]);
 
 	const handleFreshFolder = async () => {
-		setCurrentTab('explore');
-		const newAssessInfo = await sendMessage<
-			{ folder_id: string },
-			MESSAGE_TYPE_KEY
-		>('CONTENT_UPDATE_ACCESS_INFO', null, 'content-script');
+		const newAssessInfo = await sendMessage<{ folder_id: string }>(
+			(type) => type.CONTENT_UPDATE_ACCESS_INFO,
+			null,
+			'content-script'
+		);
 		// 没切换文件夹则不请求
 		if (assessInfo.folder_id === newAssessInfo.folder_id) {
 			return;
@@ -64,15 +70,27 @@ const App = () => {
 		freshExploreFiles();
 	};
 
+	const handleTabChange = (idx: number) => {
+		const tabValue = tabIdxMap[idx as keyof typeof tabIdxMap];
+		setCurrentTab(tabValue);
+		if (tabValue !== 'explore') return;
+		handleFreshFolder();
+	};
+
 	return (
 		<div className='App w-full'>
-			<Tabs.Root defaultValue='explore'>
-				<div className='fixed  z-20 box-border border-b border-indigo-50 pr-2 top-0 left-0  w-full h-8 bg-white  flex items-center'>
-					<Tabs.List className='flex'>
-						<Tabs.TabsTrigger
-							onClick={handleFreshFolder}
-							className='flex pt-1  align-middle items-center  px-2 text-sm data-[state=active]:text-black data-[state=active]:bg-indigo-50 data-[state=active]:border-indigo-200 border-white/0 border-b-2  pb-1  '
-							value='explore'>
+			<Toaster position='top-right' />
+			<Tab.Group
+				defaultIndex={0}
+				onChange={handleTabChange}>
+				<Tab.List className='fixed  z-20 box-border border-b border-indigo-50 pr-2 top-0 left-0  w-full h-8 bg-white  flex items-center'>
+					<div className='flex w-full'>
+						<Tab
+							className={({ selected }) =>
+								`flex pt-1  align-middle items-center px-2 text-sm whitespace-nowrap ${
+									selected ? 'text-black bg-indigo-50 border-indigo-200 ' : ''
+								} border-white/0 border-b-2  pb-1 `
+							}>
 							<svg
 								xmlns='http://www.w3.org/2000/svg'
 								fill='none'
@@ -87,11 +105,13 @@ const App = () => {
 								/>
 							</svg>
 							<span>Explore</span>
-						</Tabs.TabsTrigger>
-						<Tabs.TabsTrigger
-							onClick={() => setCurrentTab('batch')}
-							value='batch'
-							className='flex pt-1 align-middle items-center pl-2 pr-3 text-sm data-[state=active]:text-black data-[state=active]:bg-indigo-50  data-[state=active]:border-indigo-200 border-white/0 border-b-2  pb-1'>
+						</Tab>
+						<Tab
+							className={({ selected }) =>
+								`flex pt-1  align-middle items-center px-2 text-sm whitespace-nowrap ${
+									selected ? 'text-black bg-indigo-50 border-indigo-200 ' : ''
+								} border-white/0 border-b-2  pb-1 `
+							}>
 							<svg
 								xmlns='http://www.w3.org/2000/svg'
 								fill='none'
@@ -106,11 +126,13 @@ const App = () => {
 								/>
 							</svg>
 							<span>Batch</span>
-						</Tabs.TabsTrigger>
-						<Tabs.TabsTrigger
-							onClick={() => setCurrentTab('download')}
-							className='flex pt-1 align-middle items-center pl-2 pr-3 text-sm data-[state=active]:text-black data-[state=active]:bg-indigo-50  data-[state=active]:border-indigo-200 border-white/0 border-b-2  pb-1  '
-							value='download'>
+						</Tab>
+						<Tab
+							className={({ selected }) =>
+								`flex pt-1  align-middle items-center px-2 text-sm whitespace-nowrap ${
+									selected ? 'text-black bg-indigo-50 border-indigo-200 ' : ''
+								} border-white/0 border-b-2  pb-1 `
+							}>
 							<svg
 								xmlns='http://www.w3.org/2000/svg'
 								fill='none'
@@ -134,84 +156,86 @@ const App = () => {
 								)}>
 								{dowbnloadTaskCount}
 							</i>
-						</Tabs.TabsTrigger>
-					</Tabs.List>
-					<div
-						className={cx('flex-1 flex items-center justify-center', {
-							hidden: !enableInput,
-						})}>
-						<div className='flex-1 h-full flex justify-center items-center mx-4'>
-							<input
-								onChange={(e) => handleUpdateSearchKey(e.target.value)}
-								value={isExploreTab ? searchKey : taskSearchKey}
-								placeholder={
-									isExploreTab
-										? '搜索文件(输入文件名或者场景ID)'
-										: '搜索下载任务(输入文件名或者场景ID)'
-								}
-								className='block w-full text-xs border-none   text-black outline-none'
-								type='text'
-							/>
+						</Tab>
+						<div
+							className={cx('flex-1 flex items-center justify-end', {
+								hidden: !enableInput,
+							})}>
+							<div className='hidden  flex-1 h-full sm:flex justify-center items-center mx-4'>
+								<input
+									onChange={(e) => handleUpdateSearchKey(e.target.value)}
+									value={isExploreTab ? searchKey : taskSearchKey}
+									placeholder={
+										isExploreTab
+											? '搜索文件(输入文件名或者场景ID)'
+											: '搜索下载任务(输入文件名或者场景ID)'
+									}
+									className='block w-full text-xs border-none   text-black outline-none'
+									type='text'
+								/>
+							</div>
+							<button
+								className={cx(
+									'whitespace-nowrap text-xs select-none py-1 px-2 rounded  hover:bg-indigo-200  bg-indigo-100 group text-black text-center  hidden justify-center items-center',
+									{
+										'!inline-flex': isExploreTab,
+									}
+								)}
+								onClick={freshExploreFiles}>
+								<svg
+									xmlns='http://www.w3.org/2000/svg'
+									fill='none'
+									viewBox='0 0 24 24'
+									strokeWidth={1.5}
+									stroke='currentColor'
+									className='sm:block hidden w-4 h-4 mr-2 group-hover:animate-spin '>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										d='M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99'
+									/>
+								</svg>
+								<span>Refresh</span>
+							</button>
+							<button
+								disabled={!enableDownloadAllButton}
+								onClick={downloadAll}
+								className={cx(
+									'whitespace-nowrap ml-2 text-xs select-none py-1 px-2 rounded  hidden hover:bg-indigo-200  bg-indigo-100 disabled:cursor-not-allowed disabled:!bg-gray-100 group text-black text-center  justify-center items-center',
+									{
+										'!inline-flex': !isExploreTab,
+									}
+								)}>
+								<svg
+									xmlns='http://www.w3.org/2000/svg'
+									fill='none'
+									viewBox='0 0 24 24'
+									strokeWidth={1.5}
+									stroke='currentColor'
+									className='sm:block hidden w-4 h-4 mr-2 '>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										d='M9 3.75H6.912a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H15M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859M12 3v8.25m0 0l-3-3m3 3l3-3'
+									/>
+								</svg>
+								<span>Download All</span>
+							</button>
 						</div>
-						<button
-							className={cx(
-								'text-xs select-none py-1 px-2 rounded  hover:bg-indigo-200  bg-indigo-100 group text-black text-center  hidden justify-center items-center',
-								{
-									'!inline-flex': isExploreTab,
-								}
-							)}
-							onClick={freshExploreFiles}>
-							<svg
-								xmlns='http://www.w3.org/2000/svg'
-								fill='none'
-								viewBox='0 0 24 24'
-								strokeWidth={1.5}
-								stroke='currentColor'
-								className='sm:block hidden w-4 h-4 mr-2 group-hover:animate-spin '>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									d='M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99'
-								/>
-							</svg>
-							<span>Refresh</span>
-						</button>
-						<button
-							disabled={!enableDownloadAllButton}
-							onClick={downloadAll}
-							className={cx(
-								'ml-2 text-xs select-none py-1 px-2 rounded  hidden hover:bg-indigo-200  bg-indigo-100 disabled:cursor-not-allowed disabled:!bg-gray-100 group text-black text-center  justify-center items-center',
-								{
-									'!inline-flex': !isExploreTab,
-								}
-							)}>
-							<svg
-								xmlns='http://www.w3.org/2000/svg'
-								fill='none'
-								viewBox='0 0 24 24'
-								strokeWidth={1.5}
-								stroke='currentColor'
-								className='sm:block hidden w-4 h-4 mr-2 '>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									d='M9 3.75H6.912a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H15M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859M12 3v8.25m0 0l-3-3m3 3l3-3'
-								/>
-							</svg>
-							<span>Download All</span>
-						</button>
 					</div>
-				</div>
-				<Tabs.Content value='explore'>
-					<Explore />
-				</Tabs.Content>
-				<Tabs.Content value='download'>
-					<Download />
-				</Tabs.Content>
-				<Tabs.Content value='batch'>
-					<Batch />
-				</Tabs.Content>
-			</Tabs.Root>
+				</Tab.List>
+				<Tab.Panels>
+					<Tab.Panel>
+						<Explore />
+					</Tab.Panel>
+					<Tab.Panel>
+						<Batch />
+					</Tab.Panel>
+					<Tab.Panel>
+						<Download />
+					</Tab.Panel>
+				</Tab.Panels>
+			</Tab.Group>
 		</div>
 	);
 };

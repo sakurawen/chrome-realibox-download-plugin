@@ -5,6 +5,7 @@ export const MESSAGE_TYPE = {
 	BACKGROUND_FLUSH_FOLDER_NODES: 'BACKGROUND_FLUSH_FOLDER_NODES', //background更新文件夹信息
 	BACKGROUND_UPDATE_ACCESS_INFO: 'BACKGROUND_UPDATE_ACCESS_INFO', //background更新访问信息
 	CONTENT_UPDATE_ACCESS_INFO: 'CONTENT_UPDATE_ACCESS_INFO', //content更新访问信息
+	ping_background: 'ping_background',
 } as const;
 
 export type MESSAGE_TYPE_KEY = keyof typeof MESSAGE_TYPE;

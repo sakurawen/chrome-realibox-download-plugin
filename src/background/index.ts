@@ -1,6 +1,6 @@
-import { MESSAGE_TYPE_KEY } from '@/shared/message';
+import { onMessage } from '@/shared/webextBridge';
 import 'webext-bridge';
-import { onMessage } from 'webext-bridge';
+
 
 onMessage('ping_background', () => {
 	console.log('connect background success');
@@ -9,25 +9,25 @@ onMessage('ping_background', () => {
 // /**
 //  * 更新token等访问信息
 //  */
-onMessage<
-	{
-		token: string;
-		parent_id: string;
-		folder_id: string;
-	},
-	MESSAGE_TYPE_KEY
->('BACKGROUND_UPDATE_ACCESS_INFO', ({ data }) => {
-	const { token, parent_id, folder_id } = data;
-	assessInfo.token = token;
-	assessInfo.parent_id = parent_id;
-	assessInfo.folder_id = folder_id;
-});
+onMessage<{
+	token: string;
+	parent_id: string;
+	folder_id: string;
+}>(
+	(type) => type.BACKGROUND_UPDATE_ACCESS_INFO,
+	({ data }) => {
+		const { token, parent_id, folder_id } = data;
+		assessInfo.token = token;
+		assessInfo.parent_id = parent_id;
+		assessInfo.folder_id = folder_id;
+	}
+);
 
 /**
  * 创建打包任务
  */
-onMessage<Realibox.File, MESSAGE_TYPE_KEY>(
-	'BACKGROUND_CREATE_PACK_TASK',
+onMessage<Realibox.File>(
+	(type) => type.BACKGROUND_CREATE_PACK_TASK,
 	async ({ data }) => {
 		const { scene_uid } = data;
 		try {
@@ -42,35 +42,38 @@ onMessage<Realibox.File, MESSAGE_TYPE_KEY>(
 /**
  * 刷新目录
  */
-onMessage<{}, MESSAGE_TYPE_KEY>('BACKGROUND_FLUSH_FOLDER_NODES', async () => {
-	try {
-		const result = await flushFolderNodes();
-		return result;
-	} catch (err) {
-		throw err;
+onMessage<{}>(
+	(type) => type.BACKGROUND_FLUSH_FOLDER_NODES,
+	async () => {
+		try {
+			const result = await flushFolderNodes();
+			return result;
+		} catch (err) {
+			throw err;
+		}
 	}
-});
+);
 
 /**
  * 查询打包状态
  */
-onMessage<
-	{
-		job_uids: string | string[];
-	},
-	MESSAGE_TYPE_KEY
->('BACKGROUND_QUERY_TASK_STATUS', async ({ data }) => {
-	try {
-		const { job_uids } = data;
-		const result = await queryTaskStatus(job_uids);
-		const {
-			list: { data: taskList },
-		} = result;
-		return taskList;
-	} catch (err) {
-		throw err;
+onMessage<{
+	job_uids: string | string[];
+}>(
+	(type) => type.BACKGROUND_QUERY_TASK_STATUS,
+	async ({ data }) => {
+		try {
+			const { job_uids } = data;
+			const result = await queryTaskStatus(job_uids);
+			const {
+				list: { data: taskList },
+			} = result;
+			return taskList;
+		} catch (err) {
+			throw err;
+		}
 	}
-});
+);
 
 const assessInfo = {
 	token: '',
@@ -96,7 +99,7 @@ const getFolderNodes = (
 	token: string,
 	limit = '100'
 ) => {
-	getFolderNodesAbortController.abort();
+	getFolderNodesAbortController.abort('新一次获取文件夹信息，取消改次取消请求');
 	getFolderNodesAbortController = new AbortController();
 	const query = new URLSearchParams({
 		project_id,
@@ -126,16 +129,17 @@ const flushFolderNodes = () => {
 	return getFolderNodes(parent_id || '', folder_id || '', token)
 		.then((res) => res.json())
 		.then((res) => {
-			const result = res.list.data.map((i: any) => {
-				let scene_uid = '';
-				if (i.scenes[0]) {
-					scene_uid = i.scenes[0].scene_uid;
-				} else {
-					return null;
-				}
-				const item = { ...i, scene_uid };
-				return item;
-			});
+			const result =
+				res?.list?.data.map((i: any) => {
+					let scene_uid = '';
+					if (i.scenes[0]) {
+						scene_uid = i.scenes[0].scene_uid;
+					} else {
+						return null;
+					}
+					const item = { ...i, scene_uid };
+					return item;
+				}) || [];
 			return result.reduce((acc: any, cur: any) => {
 				if (!cur) return acc;
 				acc[cur.scene_uid] = cur;
@@ -143,8 +147,7 @@ const flushFolderNodes = () => {
 			}, {});
 		})
 		.catch((err) => {
-			console.error('flushFolderNodes err:', err);
-			return {};
+			throw err;
 		});
 };
 
@@ -158,23 +161,27 @@ let abortController = new AbortController();
 const queryTaskStatus = async (job_uids: string | Array<string>) => {
 	const reqUrl = 'https://hub.realibox.com/api/hub/v1/jobs';
 	// 取消上一次请求
-	abortController.abort('cancel prev request');
+	abortController.abort('新一次查询任务状态，取消当前请求');
 	abortController = new AbortController();
 	const body = JSON.stringify({
 		job_uids: Array.isArray(job_uids) ? job_uids : [job_uids],
 	});
 	const token = getToken();
-	const data = await fetch(reqUrl, {
-		method: 'POST',
-		body,
-		signal: abortController.signal,
-		headers: {
-			'Content-Type': 'application/json',
-			authorization: token,
-		},
-	});
-	const result: Realibox.QueryTaskResponse = await data.json();
-	return result;
+	try {
+		const data = await fetch(reqUrl, {
+			method: 'POST',
+			body,
+			signal: abortController.signal,
+			headers: {
+				'Content-Type': 'application/json',
+				authorization: token,
+			},
+		});
+		const result: Realibox.QueryTaskResponse = await data.json();
+		return result;
+	} catch (err) {
+		throw err;
+	}
 };
 
 /**
@@ -197,13 +204,10 @@ const createPackTask = async (parent_id: string, scene_uid: string) => {
 			throw new Error('error');
 		}
 		return {
-			job_uid: result.info.job_uid,
+			job_uid: result?.info.job_uid,
 			scene_uid,
 		};
-	} catch {
-		return {
-			job_uid: '',
-			scene_uid,
-		};
+	} catch (err) {
+		throw err;
 	}
 };
