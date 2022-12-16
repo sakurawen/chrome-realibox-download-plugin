@@ -81,7 +81,7 @@ const Download = () => {
 				<button
 					onClick={resetApp}
 					className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
-					重制下载相关
+					重置下载相关
 				</button>
 			</div>
 		</div>
