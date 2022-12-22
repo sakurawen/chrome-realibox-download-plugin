@@ -7,6 +7,7 @@ type DownloadTaskParam = {
 	order: number;
 	status: Realibox.TaskStatus;
 };
+
 class DownloadTask {
 	[immerable] = true;
 	jobUid: string = '';

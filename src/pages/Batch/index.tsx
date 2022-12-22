@@ -138,7 +138,7 @@ const Batch = () => {
 						<RadioGroup.Option
 							as='button'
 							className={({ checked }) => `
-                text-center inline-block p-1 rounded w-24 ${
+                text-center focus:ring-2 inline-block p-1 rounded w-24 ${
 									checked ? 'bg-indigo-100' : 'bg-gray-100'
 								}
               `}
@@ -148,7 +148,7 @@ const Batch = () => {
 						<RadioGroup.Option
 							as='button'
 							className={({ checked }) => `
-              text-center inline-block p-1 rounded w-24 ${
+              text-center focus:ring-2 inline-block p-1 rounded w-24 ${
 								checked ? 'bg-indigo-100' : 'bg-gray-100'
 							}
             `}
@@ -190,7 +190,8 @@ const Batch = () => {
 				<div className='space-x-2 flex'>
 					<button
 						onClick={handleAddTaskBatch}
-						className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
+						tabIndex={0}
+						className='p-2 inline-flex focus:ring-2 items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
 							fill='none'
@@ -207,7 +208,8 @@ const Batch = () => {
 						<span>批量添加打包任务</span>
 					</button>
 					<button
-						className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'
+						tabIndex={0}
+						className='p-2 inline-flex focus:ring-2  items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'
 						onClick={resetBatch}>
 						Reset
 					</button>

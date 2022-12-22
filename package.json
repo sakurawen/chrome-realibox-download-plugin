@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "run-p clear dev:*",
+    "dev": "npm run clear && run-p  dev:*",
     "dev:web": "vite build --watch",
     "dev:content": "vite build --watch --config vite.config.content.ts",
-    "build": "run-p clear build:*",
+    "build": "npm run clear && run-p build:*",
     "build:web": "tsc && vite build",
     "build:content": "tsc && vite build --config vite.config.content.ts",
     "lint": "tsc --noEmit",

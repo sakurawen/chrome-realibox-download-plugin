@@ -38,7 +38,7 @@ onMessage<{}>('CONTENT_UPDATE_ACCESS_INFO', () => {
  * @param {string} key
  * @returns
  */
-const getCookie = (key: string) => {
+const getCookie = (key: string) => {  
 	let arr;
 	const reg = new RegExp('(^| )' + key + '=([^;]*)(;|$)');
 	if ((arr = document.cookie.match(reg))) {

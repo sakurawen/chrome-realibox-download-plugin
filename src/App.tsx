@@ -1,13 +1,13 @@
 import '@/App.css';
+import useMount from '@/hooks/useMount';
+import Batch from '@/pages/Batch';
 import Download from '@/pages/Download';
 import Explore from '@/pages/Explore';
-import Batch from '@/pages/Batch';
+import { sendMessage } from '@/shared/webextBridge';
 import { useApp } from '@/store';
+import { Tab } from '@headlessui/react';
 import cx from 'classnames';
 import { useMemo } from 'react';
-import { sendMessage } from '@/shared/webextBridge';
-import useOnceEffect from './hooks/useOnceEffect';
-import { Tab } from '@headlessui/react';
 import { Toaster } from 'react-hot-toast';
 
 const tabIdxMap = {
@@ -22,16 +22,16 @@ const App = () => {
 		searchKey,
 		taskSearchKey,
 		downloadTaskRecord,
+    assessInfo,
+		currentTab,
 		freshExploreFiles,
 		updateSearchKey,
 		updateTaskSearchKey,
 		downloadAll,
-		assessInfo,
-		currentTab,
 		setCurrentTab,
 	} = useApp();
 
-	useOnceEffect(() => {
+	useMount(() => {
 		freshExploreFiles();
 	});
 
@@ -83,12 +83,12 @@ const App = () => {
 			<Tab.Group
 				defaultIndex={0}
 				onChange={handleTabChange}>
-				<Tab.List className='fixed  z-20 box-border border-b border-indigo-50 pr-2 top-0 left-0  w-full h-8 bg-white  flex items-center'>
+				<Tab.List className='fixed   z-20 box-border border-b border-indigo-50 pr-2 top-0 left-0  w-full h-8 bg-white  flex items-center'>
 					<div className='flex w-full'>
 						<Tab
 							className={({ selected }) =>
-								`flex pt-1  align-middle items-center px-2 text-sm whitespace-nowrap ${
-									selected ? 'text-black bg-indigo-50 border-indigo-200 ' : ''
+								`focus:outline-1 focus:outline-indigo-300   flex pt-1  align-middle  items-center px-2 text-sm whitespace-nowrap ${
+									selected ? 'text-black  bg-indigo-50 border-indigo-500 ' : ''
 								} border-white/0 border-b-2  pb-1 `
 							}>
 							<svg
@@ -108,8 +108,8 @@ const App = () => {
 						</Tab>
 						<Tab
 							className={({ selected }) =>
-								`flex pt-1  align-middle items-center px-2 text-sm whitespace-nowrap ${
-									selected ? 'text-black bg-indigo-50 border-indigo-200 ' : ''
+								`focus:outline-1 focus:outline-indigo-300   flex pt-1  align-middle items-center px-2 text-sm whitespace-nowrap ${
+									selected ? 'text-black  bg-indigo-50 border-indigo-500 ' : ''
 								} border-white/0 border-b-2  pb-1 `
 							}>
 							<svg
@@ -129,8 +129,8 @@ const App = () => {
 						</Tab>
 						<Tab
 							className={({ selected }) =>
-								`flex pt-1  align-middle items-center px-2 text-sm whitespace-nowrap ${
-									selected ? 'text-black bg-indigo-50 border-indigo-200 ' : ''
+								`focus:outline-1 focus:outline-indigo-300   flex pt-1  align-middle items-center px-2 text-sm whitespace-nowrap ${
+									selected ? 'text-black  bg-indigo-50 border-indigo-500 ' : ''
 								} border-white/0 border-b-2  pb-1 `
 							}>
 							<svg
@@ -176,7 +176,7 @@ const App = () => {
 							</div>
 							<button
 								className={cx(
-									'whitespace-nowrap text-xs select-none py-1 px-2 rounded  hover:bg-indigo-200  bg-indigo-100 group text-black text-center  hidden justify-center items-center',
+									'whitespace-nowrap focus:ring-2 text-xs select-none py-1 px-2 rounded  hover:bg-indigo-200  bg-indigo-100 group text-black text-center  hidden justify-center items-center',
 									{
 										'!inline-flex': isExploreTab,
 									}
@@ -201,7 +201,7 @@ const App = () => {
 								disabled={!enableDownloadAllButton}
 								onClick={downloadAll}
 								className={cx(
-									'whitespace-nowrap ml-2 text-xs select-none py-1 px-2 rounded  hidden hover:bg-indigo-200  bg-indigo-100 disabled:cursor-not-allowed disabled:!bg-gray-100 group text-black text-center  justify-center items-center',
+									'whitespace-nowrap focus:ring-2 ml-2 text-xs select-none py-1 px-2 rounded  hidden hover:bg-indigo-200  bg-indigo-100 disabled:cursor-not-allowed disabled:!bg-gray-100 group text-black text-center  justify-center items-center',
 									{
 										'!inline-flex': !isExploreTab,
 									}

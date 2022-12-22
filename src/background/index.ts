@@ -1,7 +1,6 @@
 import { onMessage } from '@/shared/webextBridge';
 import 'webext-bridge';
 
-
 onMessage('ping_background', () => {
 	console.log('connect background success');
 });

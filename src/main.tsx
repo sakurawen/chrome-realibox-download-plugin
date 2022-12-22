@@ -1,20 +1,22 @@
 import App from '@/App';
 import '@/index.css';
-import { MESSAGE_TYPE_KEY } from '@/shared/message';
 import { useOriginApp } from '@/store/useApp';
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
-import { onMessage } from 'webext-bridge';
+import { onMessage } from '@/shared/webextBridge';
 
 /**
  * 监听文件夹变化
  */
-onMessage<{}, MESSAGE_TYPE_KEY>('DEVTOLLS_FLUSH_FOLDER_NODES', () => {
-	console.log('folder change');
-	if (useOriginApp.getState().currentTab === 'explore') {
-		useOriginApp.getState().freshExploreFiles();
+onMessage<{}>(
+	(type) => type.DEVTOLLS_FLUSH_FOLDER_NODES,
+	() => {
+		console.log('folder change');
+		if (useOriginApp.getState().currentTab === 'explore') {
+			useOriginApp.getState().freshExploreFiles();
+		}
 	}
-});
+);
 
 /**
  * 注入重写 history api 脚本
