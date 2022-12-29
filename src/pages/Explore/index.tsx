@@ -86,79 +86,98 @@ function Explore() {
 					</svg>
 				</div>
 				<ul className='p-1 flex flex-wrap justify-start items-center'>
-					{fileList.map((item) => {
-						return (
-							<li
-								role='listitem'
-								className='w-1/2 select-none md:w-1/4 xl:w-[16.6%] 2xl:w-[12.5%] p-2'
-								key={item.id}>
-								<div
-									tabIndex={0}
-									className='shadow-sm w-full relative  hover:ring-indigo-100 hover:ring-2  rounded-md pb-2 pt-1 mb-2 flex justify-between items-center px-1'>
-									<div className='w-full'>
-										<div className='w-full relative'>
-											<i
-												className={cx(
-													'block w-4 h-4 absolute  top-1 left-1 rounded',
-													{
-														'bg-indigo-100':
-															sceneStatusRecord[item.scene_uid] ===
-															'QUERY_STATUS',
-														'bg-green-100':
-															sceneStatusRecord[item.scene_uid] ===
-															'GET_DOWNLOAD',
-														'bg-red-100':
-															sceneStatusRecord[item.scene_uid] === 'ERROR',
-													}
-												)}></i>
-											<img
-												onDragStart={(e) => e.preventDefault()}
-												className='w-full pointer-events-none select-none rounded-md  object-cover aspect-video'
-												src={'https:' + item.thumbnail}
-												alt='thumbnail'
-											/>
-											<div className='absolute bottom-0 left-1 w-full overflow-hidden text-xs whitespace-pre-wrap text-gray-500 '>
-												<span className='select-all cursor-pointer inline-block rounded max-w-[80%] overflow-hidden text-ellipsis text-indigo-50 px-1 bg-black/40'>
-													{item.scene_uid}
-												</span>
+					{fileList.length === 0 ? (
+						<div className='w-full h-full flex py-24 select-none pointer-events-none justify-center text-gray-300 flex-col text-center items-center'>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								fill='none'
+								viewBox='0 0 24 24'
+								strokeWidth={1.5}
+								stroke='currentColor'
+								className='w-12 h-12'>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									d='M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z'
+								/>
+							</svg>
+              <span className='my-2 '>empty</span>
+						</div>
+					) : (
+						fileList.map((item) => {
+							return (
+								<li
+									role='listitem'
+									className='w-1/2 select-none md:w-1/4 xl:w-[16.6%] 2xl:w-[12.5%] p-2'
+									key={item.id}>
+									<div
+										tabIndex={0}
+										className='shadow-sm w-full relative  hover:ring-indigo-100 hover:ring-2  rounded-md pb-2 pt-1 mb-2 flex justify-between items-center px-1'>
+										<div className='w-full'>
+											<div className='w-full relative'>
+												<i
+													className={cx(
+														'block w-4 h-4 absolute  top-1 left-1 rounded',
+														{
+															'bg-indigo-100':
+																sceneStatusRecord[item.scene_uid] ===
+																'QUERY_STATUS',
+															'bg-green-100':
+																sceneStatusRecord[item.scene_uid] ===
+																'GET_DOWNLOAD',
+															'bg-red-100':
+																sceneStatusRecord[item.scene_uid] === 'ERROR',
+														}
+													)}></i>
+												<img
+													onDragStart={(e) => e.preventDefault()}
+													className='w-full pointer-events-none select-none rounded-md  object-cover aspect-video'
+													src={'https:' + item.thumbnail}
+													alt='thumbnail'
+												/>
+												<div className='absolute bottom-0 left-1 w-full overflow-hidden text-xs whitespace-pre-wrap text-gray-500 '>
+													<span className='select-all cursor-pointer inline-block rounded max-w-[80%] overflow-hidden text-ellipsis text-indigo-50 px-1 bg-black/40'>
+														{item.scene_uid}
+													</span>
+												</div>
 											</div>
-										</div>
-										<div className='pl-1 flex w-full h-7 justify-between overflow-hidden items-center mt-2'>
-											<div className='whitespace-nowrap max-w-[80%] overflow-hidden text-ellipsis'>
-												{item.name}
+											<div className='pl-1 flex w-full h-7 justify-between overflow-hidden items-center mt-2'>
+												<div className='whitespace-nowrap max-w-[80%] overflow-hidden text-ellipsis'>
+													{item.name}
+												</div>
+												<button
+													tabIndex={0}
+													onClick={() => handleStartPack(item)}
+													className={cx(
+														' hover:bg-indigo-100 hover:ring-indigo-300 hover:ring-2 ring-inset cursor-pointer hover:text-black p-0.5 rounded-md',
+														{
+															hidden:
+																downloadTaskRecord[item.scene_uid]?.status ===
+																	'ERROR' ||
+																downloadTaskRecord[item.scene_uid]?.status,
+														}
+													)}>
+													<svg
+														xmlns='http://www.w3.org/2000/svg'
+														fill='none'
+														viewBox='0 0 24 24'
+														strokeWidth={1.5}
+														stroke='currentColor'
+														className='w-5 h-5'>
+														<path
+															strokeLinecap='round'
+															strokeLinejoin='round'
+															d='M12 6v12m6-6H6'
+														/>
+													</svg>
+												</button>
 											</div>
-											<button
-												tabIndex={0}
-												onClick={() => handleStartPack(item)}
-												className={cx(
-													' hover:bg-indigo-100 hover:ring-indigo-300 hover:ring-2 ring-inset cursor-pointer hover:text-black p-0.5 rounded-md',
-													{
-														hidden:
-															downloadTaskRecord[item.scene_uid]?.status ===
-																'ERROR' ||
-															downloadTaskRecord[item.scene_uid]?.status,
-													}
-												)}>
-												<svg
-													xmlns='http://www.w3.org/2000/svg'
-													fill='none'
-													viewBox='0 0 24 24'
-													strokeWidth={1.5}
-													stroke='currentColor'
-													className='w-5 h-5'>
-													<path
-														strokeLinecap='round'
-														strokeLinejoin='round'
-														d='M12 6v12m6-6H6'
-													/>
-												</svg>
-											</button>
 										</div>
 									</div>
-								</div>
-							</li>
-						);
-					})}
+								</li>
+							);
+						})
+					)}
 				</ul>
 			</div>
 		</>

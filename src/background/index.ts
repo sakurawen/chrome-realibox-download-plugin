@@ -131,8 +131,8 @@ const flushFolderNodes = () => {
 			const result =
 				res?.list?.data.map((i: any) => {
 					let scene_uid = '';
-					if (i.scenes[0]) {
-						scene_uid = i.scenes[0].scene_uid;
+					if (i.scenes.length!==0) {
+						scene_uid = i.scenes.find((item:any)=>item.is_active).scene_uid;
 					} else {
 						return null;
 					}
