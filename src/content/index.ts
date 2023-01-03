@@ -1,5 +1,4 @@
 import { onMessage, sendMessage } from '@/shared/webextBridge';
-import { injectHistoryApiReplaceScript } from '@/shared/inject';
 import 'webext-bridge';
 sendMessage('ping_background', null, 'background');
 

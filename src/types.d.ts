@@ -14,7 +14,7 @@ declare module Realibox {
 		status: number;
 		tags: string[];
 		thumbnail: string;
-		update_time: numbers;
+		update_time: number;
 		user_avatar_url: string;
 		user_id: string;
 		user_nickname: string;
