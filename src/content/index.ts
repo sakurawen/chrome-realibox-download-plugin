@@ -1,7 +1,7 @@
 import { onMessage, sendMessage } from '@/shared/webextBridge';
+import { injectHistoryApiReplaceScript } from '@/shared/inject';
 import 'webext-bridge';
 sendMessage('ping_background', null, 'background');
-
 
 /**
  * 监听页面url变化，触发文件夹更新
@@ -17,28 +17,31 @@ window.addEventListener('message', (e) => {
 /**
  * 更新访问信息
  */
-onMessage<{}>('CONTENT_UPDATE_ACCESS_INFO', () => {
-	const [parent_id, folder_id] = getParentIdAndFolderId(location.pathname);
-	const token = getToken();
-	const assessInfo = { parent_id, folder_id, token };
-	sendMessage<{}>(
-		(t) => t.BACKGROUND_UPDATE_ACCESS_INFO,
-		{
+onMessage<any>(
+	(state) => state.CONTENT_UPDATE_ACCESS_INFO,
+	() => {
+		const [parent_id, folder_id] = getParentIdAndFolderId(location.pathname);
+		const token = getToken();
+		const assessInfo = {
 			parent_id: parent_id || '',
 			folder_id: folder_id || '',
-			token: token || '',
-		},
-		'background'
-	);
-	return assessInfo;
-});
+			token,
+		};
+		sendMessage<{}>(
+			(t) => t.BACKGROUND_UPDATE_ACCESS_INFO,
+			assessInfo,
+			'background'
+		);
+		return assessInfo;
+	}
+);
 
 /**
  * 根据key获取cookie值
  * @param {string} key
  * @returns
  */
-const getCookie = (key: string) => {  
+const getCookie = (key: string) => {
 	let arr;
 	const reg = new RegExp('(^| )' + key + '=([^;]*)(;|$)');
 	if ((arr = document.cookie.match(reg))) {

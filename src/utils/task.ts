@@ -8,7 +8,7 @@ type RunConfiguration<T> = {
 	limit: number;
 	resolveItem?(result: T): void;
 	rejectItem?(err: unknown): void;
-	resolveAll?(results: unknown[]): void;
+	finishAll?(results: unknown[]): void;
 };
 
 /**
@@ -25,7 +25,7 @@ const runImpl = <T>(
 		taskMap: WeakMap<Function, number>;
 	}
 ) => {
-	const { limit, resolveAll, resolveItem, rejectItem } = conf;
+	const { limit, finishAll, resolveItem, rejectItem } = conf;
 	if (setting.current > tasks.length - 1) return;
 	for (let i = setting.current; i < tasks.length; i++) {
 		if (setting.count >= limit) {
@@ -52,7 +52,7 @@ const runImpl = <T>(
 					}
 					// filter emtpy
 					if (setting.results.filter((i) => '' + i).length === tasks.length) {
-						resolveAll?.(setting.results);
+						finishAll?.(setting.results);
 					}
 				});
 		} catch (err) {

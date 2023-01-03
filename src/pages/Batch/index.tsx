@@ -4,6 +4,7 @@ import DownloadTask from '@/store/entity/DownloadTask';
 import { toast } from '@/utils';
 import { RadioGroup } from '@headlessui/react';
 import cx from 'classnames';
+import { run } from '@/utils/task';
 
 const createTask = (parent_id: string, scene_uid: string) => {
 	return async () => {
@@ -66,48 +67,43 @@ const Batch = () => {
 			createFuncMap[sceneId] = createTask(parentId, sceneId);
 		});
 		setBatchLoading(true);
-		Promise.allSettled(Object.values(createFuncMap).map((func) => func()))
-			.then((results) => {
-				const failTaskScenes: string[] = [];
-				results.forEach((result) => {
-					// fail
-					if (result.status === 'rejected') {
-						const failSceneId = result.reason.message;
-						failTaskScenes.push(failSceneId);
-						setDownloadTaskErr(failSceneId);
-						return;
-					}
-					// success
-					const { job_uid, scene_uid, name } = result.value;
-					if (!job_uid) {
-						return;
-					}
-					const task = new DownloadTask({
-						status: 'QUERY_STATUS',
-						jobUid: job_uid,
-						title: name,
-						sceneUid: scene_uid,
-						order: downloadTaskCount + 1,
-					});
-					addJobUid(job_uid, scene_uid);
-					addDownloadTask(task);
-				});
-				if (failTaskScenes.length === 0) {
-					toast.success('打包任务批次，添加成功');
-				} else {
-					failTaskScenes.forEach((sceneId) => {
-						toast.error(`创建打包任务失败,sid:${sceneId}`);
-					});
-					toast.success(
-						`创建打包任务成功场景数量：${
-							results.length - failTaskScenes.length
-						}`
-					);
+		const failTaskScenes: string[] = [];
+		const tasks = Object.values(createFuncMap);
+		run(tasks, {
+			limit: 4,
+			resolveItem(result) {
+				console.log('resolve item:', result);
+				const { job_uid, scene_uid, name } = result;
+				if (!job_uid) {
+					return;
 				}
-			})
-			.finally(() => {
+				const task = new DownloadTask({
+					status: 'QUERY_STATUS',
+					jobUid: job_uid,
+					title: name,
+					sceneUid: scene_uid,
+					order: downloadTaskCount + 1,
+				});
+				addJobUid(job_uid, scene_uid);
+				addDownloadTask(task);
+			},
+			rejectItem(err: Error) {
+				console.log('reason:', err);
+				const failSceneId = err.message;
+				failTaskScenes.push(failSceneId);
+				setDownloadTaskErr(failSceneId);
+				toast.error(`创建打包任务失败,sid:${failSceneId}`);
+			},
+			finishAll(results) {
+				console.log('finish all:', results);
 				setBatchLoading(false);
-			});
+				toast.success(
+					`批量创建打包任务完成，有效任务总数${tasks.length},成功任务数量：${
+						results.length - failTaskScenes.length
+					}`
+				);
+			},
+		});
 	};
 
 	/**
@@ -211,7 +207,7 @@ const Batch = () => {
 						tabIndex={0}
 						className='p-2 inline-flex focus:ring-2  items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'
 						onClick={resetBatch}>
-						Reset
+						重置表单
 					</button>
 				</div>
 			</div>

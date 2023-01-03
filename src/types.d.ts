@@ -22,7 +22,6 @@ declare module Realibox {
 	};
 	// 任务状态
 	type TaskStatus =
-		| 'GET_SCENE_UID'
 		| 'QUERY_STATUS'
 		| 'GET_DOWNLOAD'
 		| 'ERROR'
@@ -44,3 +43,5 @@ declare module Realibox {
 		};
 	};
 }
+
+

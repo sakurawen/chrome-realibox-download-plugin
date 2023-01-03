@@ -1,6 +1,7 @@
 const replaceHistoryApi = () => {
 	const originHistoryPushState = history.pushState;
 	const originHistoryReplaceState = history.replaceState;
+	(window as any).__replaceHistoryApi = true;
 	const override = {
 		pushState: function (...args: any) {
 			originHistoryPushState.apply(this, args);

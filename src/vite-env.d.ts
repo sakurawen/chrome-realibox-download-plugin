@@ -1,3 +1,7 @@
 /// <reference types="vite/client" />
+import type Browser, { Runtime } from 'webextension-polyfill';
 
-declare const browser:chrome
+declare global {
+	const browser: Browser.Browser;
+	type RuntimePort = Runtime.Port;
+}

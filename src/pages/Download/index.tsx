@@ -2,15 +2,15 @@ import { useApp } from '@/store';
 import DownloadTask from '@/store/entity/DownloadTask';
 import cx from 'classnames';
 import { useDeferredValue, useEffect, useMemo } from 'react';
+
+const statusTextMap = {
+	ERROR: '发生错误',
+	GET_DOWNLOAD: '打包成功',
+	QUERY_STATUS: '打包中',
+};
+
 const getStatusText = (status: Realibox.TaskStatus) => {
-	switch (true) {
-		case status === 'ERROR':
-			return '发生错误';
-		case status === 'GET_DOWNLOAD':
-			return '打包成功';
-		case status === 'QUERY_STATUS':
-			return '打包中';
-	}
+	return statusTextMap[status || 'ERROR'];
 };
 
 /**
@@ -24,10 +24,22 @@ const Download = () => {
 		queryTaskStatus,
 		downloadOne,
 		taskSearchKey,
-		resetApp,
+		downloadAll,
 	} = useApp();
 
 	const deferredTaskSearchKey = useDeferredValue(taskSearchKey);
+
+	/**
+	 * 启用全部下载按钮
+	 */
+	const enableDownloadAllButton = useMemo(() => {
+		const records = Object.values(downloadTaskRecord);
+		if (records.length === 0) return false;
+		if (records.every((task) => task.status !== 'QUERY_STATUS')) {
+			return true;
+		}
+		return false;
+	}, [downloadTaskRecord]);
 
 	const taskList = useMemo(() => {
 		const list = Object.values(downloadTaskRecord);
@@ -79,9 +91,22 @@ const Download = () => {
 					taskList.length === 0 ? 'hidden' : 'flex',
 				])}>
 				<button
-					onClick={resetApp}
-					className='p-2 inline-flex items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
-					重置下载相关
+					onClick={downloadAll}
+					className='p-2 inline-flex focus:ring-2  items-center justify-center bg-indigo-100 text-black rounded hover:bg-indigo-200'>
+					<svg
+						xmlns='http://www.w3.org/2000/svg'
+						fill='none'
+						viewBox='0 0 24 24'
+						strokeWidth={1.5}
+						stroke='currentColor'
+						className='sm:block hidden w-4 h-4 mr-2 '>
+						<path
+							strokeLinecap='round'
+							strokeLinejoin='round'
+							d='M9 3.75H6.912a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H15M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859M12 3v8.25m0 0l-3-3m3 3l3-3'
+						/>
+					</svg>
+					<span>下载全部</span>
 				</button>
 			</div>
 		</div>

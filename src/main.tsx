@@ -1,37 +1,44 @@
 import App from '@/App';
 import '@/index.css';
 import { useOriginApp } from '@/store/useApp';
-import { StrictMode } from 'react';
-import ReactDOM from 'react-dom/client';
+import { ReactNode, StrictMode } from 'react';
+import ReactDOM, { Root } from 'react-dom/client';
 import { onMessage } from '@/shared/webextBridge';
+import { injectHistoryApiReplaceScript } from '@/shared/inject';
 
-/**
- * 监听文件夹变化
- */
-onMessage<{}>(
-	(type) => type.DEVTOLLS_FLUSH_FOLDER_NODES,
-	() => {
-		console.log('folder change');
-		if (useOriginApp.getState().currentTab === 'explore') {
-			useOriginApp.getState().freshExploreFiles();
-		}
+let currentRoot: Root | undefined;
+let rendered = false;
+
+const render = (node: ReactNode) => {
+	if (currentRoot) {
+		currentRoot.unmount();
 	}
-);
+	const container = document.getElementById('root') as HTMLElement;
+	currentRoot = ReactDOM.createRoot(container);
+	currentRoot?.render(node);
+	rendered = true;
+};
 
-/**
- * 注入重写 history api 脚本
- */
-import('@/background/inject/historyApiReplace').then((res) => {
-	browser.devtools.inspectedWindow.eval(`
-    (${res.default})()
-  `);
-});
+const init = () => {
+	if (rendered) return;
+	/**
+	 * 监听文件夹变化
+	 */
+	onMessage<{}>(
+		(type) => type.DEVTOLLS_FLUSH_FOLDER_NODES,
+		() => {
+			console.log('folder change');
+			if (useOriginApp.getState().currentTab === 'explore') {
+				useOriginApp.getState().freshExploreFiles();
+			}
+		}
+	);
+	injectHistoryApiReplaceScript();
+	render(
+		<StrictMode>
+			<App />
+		</StrictMode>
+	);
+};
 
-const container = document.getElementById('root') as HTMLElement;
-const root = ReactDOM.createRoot(container);
-
-root.render(
-	<StrictMode>
-		<App />
-	</StrictMode>
-);
+init();
